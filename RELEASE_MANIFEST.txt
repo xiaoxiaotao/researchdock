@@ -65,6 +65,7 @@ app/web/static/company-workspace.css
 app/web/static/document.js
 app/web/static/imports.js
 app/web/static/intelligence.css
+app/web/static/mobile-preview.html
 app/web/static/reading.css
 app/web/static/sources.js
 app/web/templates/_item.html
@@ -96,6 +97,7 @@ app/web/templates/storage_offline.html
 app/youdao.py
 config.example.yaml
 docs/open-source/architecture.md
+docs/open-source/mobile-design.md
 docs/open-source/releasing.md
 docs/open-source/sources.md
 examples/research-notes.jsonl
@@ -116,6 +118,7 @@ tests/test_industries.py
 tests/test_intelligence.py
 tests/test_international_reports.py
 tests/test_international_sources.py
+tests/test_mobile_preview.py
 tests/test_release.py
 tests/test_research.py
 tests/test_research_kb.py

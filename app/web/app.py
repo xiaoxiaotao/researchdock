@@ -136,6 +136,11 @@ def on_shutdown() -> None:
     jobs.close()
 
 
+@app.get('/mobile-preview')
+def mobile_preview():
+    return FileResponse(BASE_DIR/'static/mobile-preview.html',media_type='text/html',headers={'Cache-Control':'no-store'})
+
+
 @app.get('/setup', response_class=HTMLResponse)
 def setup_page(request: Request):
     from ..doctor import checks
