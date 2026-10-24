@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}信源管理 · 财经知识库{% endblock %}
+{% block content %}
+<h1>信源管理</h1>
+<p class="sub">知识星球正文与海外机构资料，保留来源、内容范围和发布时间。</p><section class="panel" style="margin-bottom:20px"><h2>海外投行与彭博</h2><p>公开文章索引与报告导入接口；机构研报全文需对应授权。</p><a class="btn primary" href="/international">管理海外机构信源 →</a></section>
+<div class="panel" style="margin-bottom:20px">
+  <h2 style="margin-top:0">添加知识星球</h2>
+  <form id="source-form" class="searchbar" style="flex-wrap:wrap;margin-bottom:0">
+    <input name="group_id" required pattern="[0-9]{5,30}" placeholder="星球 ID（网页地址中 group/ 后的数字）" aria-label="星球 ID">
+    <input name="name" placeholder="星球名称" aria-label="星球名称" maxlength="120">
+    <button class="btn" type="submit">添加信源</button>
+  </form>
+  <p class="hint">首次需通过官方 CLI 完成 API 授权；网页登录与 API 授权分别管理。同步仅写入本地资料库。</p>
+</div>
+<p id="source-status" class="hint" role="status" aria-live="polite"></p>
+{% for source in sources %}
+<div class="panel" style="margin-bottom:16px">
+  <div style="display:flex;gap:12px;align-items:center;justify-content:space-between">
+    <h2 style="margin:0">{{ source.name }}</h2><span class="badge">{{ source.status }}</span>
+  </div>
+  <p class="hint">知识星球 · {{ source.group_id }} · <a href="{{ source.url }}" target="_blank" rel="noopener">打开星球 ↗</a></p>
+  <p>{{ source.message or '已添加，等待首次同步' }}</p>
+  <p class="hint">最近成功同步：{{ source.last_synced_at|dt('second') }}</p>
+  <p>已归档 {{ source.document_count }} 篇资料</p>
+  {% if source.has_pending_latest %}<p class="hint">本批达到数量上限，再次同步将继续读取未完成的新内容。</p>{% endif %}
+  <button class="btn primary source-sync" data-group="{{ source.group_id }}" data-mode="latest" {{ 'disabled' if source.status in ['queued','running'] }}>同步最新</button>
+  <button class="btn source-sync" data-group="{{ source.group_id }}" data-mode="history" {{ 'disabled' if source.status in ['queued','running'] or source.history_complete }}>补充历史</button>
+  <a class="btn" href="/documents?platform=zsxq&source_space_id={{ source.group_id }}">查看已收集资料</a>
+  <p class="hint">每次最多读取 3 页、每页 20 条；图片可直接查看，PDF和音频提供原件下载。</p>
+</div>
+{% else %}<div class="empty">还没有信源，添加星球后点击「同步最新」。</div>{% endfor %}
+<script src="/static/sources.js" defer></script>
+{% endblock %}

@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}导入记录 · 股票研究知识库{% endblock %}
+{% block content %}
+
+<h1>导入记录</h1>
+<p class="sub">上传资料或扫描 <code>inbox/</code> 下的 PDF / JSONL / Markdown / TXT。后台导入，同一文件不会重复入库。</p>
+
+{% if recovery_problems %}<div class="notice">归档校验发现问题，暂停新导入：{% for problem in recovery_problems %}<p>{{ problem }}</p>{% endfor %}</div>{% endif %}
+
+<div class="panel" style="margin-bottom:16px">
+  <h2 style="margin-top:0">收集资料</h2>
+  <p class="hint">每份最多 {{ max_file_mb }}MB。支持文本 PDF；扫描件需要先做 OCR。PDF 原件会保留。</p>
+  <form id="upload-form">
+    <input id="upload-files" type="file" multiple accept=".pdf,.jsonl,.md,.markdown,.txt" required aria-label="选择资料文件">
+    <button class="btn primary" type="submit">上传并导入</button>
+  </form>
+  <p id="upload-status" class="hint" role="status" aria-live="polite"></p>
+</div>
+
+{% if jobs %}
+{% if jobs|selectattr('status', 'in', ['queued', 'running'])|list %}<span data-active-jobs hidden></span>{% endif %}
+<h2>后台任务</h2>
+<div class="panel">
+{% for job in jobs[:6] %}
+  <div style="padding:8px 0"><span class="badge">{{ job.status }}</span> {{ job.message }} <span class="hint">{{ job.created_at|dt('second') }}</span></div>
+{% endfor %}
+</div>
+{% endif %}
+
+<div class="panel" style="display:flex;justify-content:space-between;align-items:center;gap:16px">
+  <div>
+    <div style="font-size:13.5px">待导入文件 {{ pending|length }} 个</div>
+    <div class="hint" style="margin-top:3px">
+      {% if pending %}{{ pending[:6] | join('、') }}{% if pending|length > 6 %} 等{% endif %}{% else %}inbox 目录为空{% endif %}
+    </div>
+  </div>
+  <form method="post" action="/imports/scan">
+    <button class="btn primary" type="submit">立即扫描</button>
+  </form>
+</div>
+
+<h2>最近批次</h2>
+{% if batches %}
+<div class="panel" style="padding:6px 20px">
+  {% for b in batches %}
+  <div style="padding:11px 0;border-bottom:1px solid var(--line-soft)">
+    <div style="display:flex;justify-content:space-between;gap:12px;align-items:baseline">
+      <div style="font-size:13.5px">{{ b.file_name }}</div>
+      <span class="badge {{ 'danger' if b.status == 'failed' else ('warn' if b.status == 'partial' else '') }}">{{ b.status }}</span>
+    </div>
+    <div class="hint" style="margin-top:4px">
+      {{ b.file_format }} · {{ b.started_at|dt('second') }} ·
+      共 {{ b.total }} 条：新增 {{ b.created }} / 更新 {{ b.updated }} / 重复 {{ b.duplicated }} / 失败 {{ b.failed }}
+    </div>
+    {% if b.file_format == 'pdf' %}<a class="hint" target="_blank" rel="noopener" href="/imports/{{ b.batch_id }}/original">查看保留的 PDF 原件 ↗</a>{% endif %}
+    {% if b.status in ['failed', 'partial', 'interrupted'] %}
+    <form method="post" action="/imports/{{ b.batch_id }}/retry" style="display:inline;margin-left:12px"><button class="btn" type="submit">重新导入</button></form>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty">还没有导入记录。</div>
+{% endif %}
+
+<h2>逐条结果</h2>
+{% if results %}
+<div class="panel" style="padding:6px 20px">
+  {% for r in results %}
+  <div style="display:flex;gap:10px;align-items:baseline;padding:7px 0;border-bottom:1px solid var(--line-soft);font-size:12.5px">
+    <span style="min-width:74px">
+      <span class="badge {{ 'danger' if r.status == 'failed' else ('warn' if r.status == 'duplicated' else 'ghost') }}">{{ r.status }}</span>
+    </span>
+    <span class="hint" style="min-width:48px">{{ ('第 ' ~ r.line_no ~ ' 行') if r.line_no else '整篇' }}</span>
+    <span style="flex:1">
+      {% if r.document_id %}
+        <a href="/documents/{{ r.document_id }}">{{ r.title or r.document_id }}</a>
+      {% else %}
+        {{ r.message or '—' }}
+      {% endif %}
+      {% if r.document_id and r.message %}<span class="hint"> · {{ r.message }}</span>{% endif %}
+    </span>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty">暂无逐条结果。</div>
+{% endif %}
+
+<script src="/static/imports.js" defer></script>
+{% endblock %}

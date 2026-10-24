@@ -1,0 +1,14 @@
+# Copy to config.yaml; no credentials belong in this file.
+app:
+  host: "127.0.0.1"
+  port: 8001
+  timezone: "Asia/Shanghai"
+  data_dir: "./kb-data"
+storage:
+  require_bound_volume: false
+  allow_automatic_local_fallback: false
+  allow_create_data_dir: true
+ingestion:
+  poll_seconds: 60
+  require_ready_marker: false
+  max_file_mb: 20

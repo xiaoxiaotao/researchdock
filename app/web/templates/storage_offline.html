@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}知识库未连接{% endblock %}
+{% block content %}
+
+<h1>知识库未连接</h1>
+<p class="sub">程序已经启动，但数据目录不可用。不会自动创建空库，也不会回退写入内置盘。</p>
+
+<div class="panel">
+  <div class="meta" style="grid-template-columns:1fr">
+    <div><span class="k">数据目录</span><span class="v">{{ storage_path }}</span></div>
+    <div><span class="k">状态</span><span class="v">{{ error or '未就绪' }}</span></div>
+  </div>
+  <hr class="sep">
+  <div style="font-size:13px;line-height:2">
+    常见原因与处理：<br>
+    1. 外置盘未挂载 —— 插上硬盘，确认 Finder 里能看到该卷，然后重启本程序。<br>
+    2. 目录被改名或移动 —— 修改 <code>config.yaml</code> 的 <code>app.data_dir</code>，或在设置中重新选择。<br>
+    3. 卷处于只读或空间不足 —— 检查磁盘权限与剩余空间。<br>
+    4. 首次使用 —— 确认目标父目录存在后，把 <code>storage.allow_create_data_dir</code> 设为 true 再启动。
+  </div>
+</div>
+
+{% endblock %}

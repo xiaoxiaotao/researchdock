@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}{{ error }} · 股票研究知识库{% endblock %}
+{% block content %}
+
+<h1>{{ error }}</h1>
+<p class="sub">{% if code %}{{ code }} · {% endif %}可以返回<a href="/">首页</a>或<a href="/documents">资料库</a>继续浏览。</p>
+
+{% endblock %}

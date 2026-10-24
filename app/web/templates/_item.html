@@ -1,0 +1,19 @@
+<a class="item" href="/documents/{{ row.document_id }}{% if row.search_page %}#page-{{ row.search_page }}{% endif %}">
+  <div class="t">{{ row.title }}</div>
+  {% if row.search_excerpt %}<div class="x">{{ row.search_excerpt }}</div>
+  {% elif row.excerpt %}<div class="x">{{ row.excerpt }}</div>{% endif %}
+  <div class="m">
+    {% if row.attachment_only %}<span class="badge warn">附件可下载{% if row.source_attachment_count %} · {{ row.source_attachment_count }} 个{% endif %}</span>{% endif %}
+    <span class="badge type">{{ row.content_type|type_label }}</span>
+    {% if row.search_page %}<span class="badge">命中第 {{ row.search_page }} 页</span>{% endif %}
+    {% if row.institution %}<span>{{ row.institution }}</span>{% endif %}
+    {% for s in stock_map.get(row.document_id, []) %}
+      <span class="badge stock">{{ s.name or s.code }}</span>
+    {% endfor %}
+    <span>{{ row.published_at|dt(row.date_precision) }}</span>
+    <span>·</span>
+    <span>{{ row.source_space_name or row.source_platform or '未知来源' }}</span>
+    {% if row.author_name %}<span>·</span><span>{{ row.author_name }}</span>{% endif %}
+    {% if not row.published_at %}<span class="badge warn">日期未知</span>{% endif %}
+  </div>
+</a>

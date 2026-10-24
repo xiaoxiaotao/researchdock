@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+{% block title %}{{ doc.title }} · 股票研究知识库{% endblock %}
+{% block content %}
+
+<div style="margin-bottom:14px">
+  <a class="hint" href="/documents">← 返回资料库</a> <a class="btn" href="/documents/{{ doc.document_id }}/export.pdf?revision={{ revision_row.revision }}">导出当前版本 PDF</a>
+</div>
+
+{% if is_old %}
+<div class="notice">
+  正在查看历史版本 r{{ '%04d' % revision_row.revision }}，当前版本为 r{{ '%04d' % doc.current_revision }}。
+  <a href="/documents/{{ doc.document_id }}">查看当前版本</a>
+</div>
+{% endif %}
+
+<div class="grid2" style="grid-template-columns:minmax(0, 1fr) minmax(230px, .55fr)">
+  <article class="doc">
+    <h1>{{ doc.title }}</h1>
+    <div class="m" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:12.5px;color:var(--muted)">
+      <span class="badge type">{{ doc.content_type|type_label }}</span>
+      {% for s in stocks %}
+        <a class="badge stock" href="/stocks/{{ s.stock_id }}">{{ s.name or s.code }}{% if s.status == 'pending' %} · 待确认{% endif %}</a>
+      {% endfor %}
+      <span>{{ doc.published_at|dt(doc.date_precision) }}</span>
+      <span>·</span>
+      <span>{{ doc.source_space_name or doc.source_platform or '未知来源' }}</span>
+      {% if doc.author_name %}<span>·</span><span>{{ doc.author_name }}</span>{% endif %}
+      {% if not doc.published_at %}<span class="badge warn">发布时间未知</span>{% endif %}
+    </div>
+
+    {% if '公开索引（非全文）' in meta.source_tags|default([]) or '外部报告信息（非全文）' in meta.source_tags|default([]) %}<div class="notice" style="margin-top:16px"><strong>机构资料索引 · 不含研报全文</strong><p>本条仅收录标题及原文链接，不能作为完整报告或AI研究结论。<a href="{{ doc.source_url }}" target="_blank" rel="noopener noreferrer">打开机构原文 ↗</a></p></div>{% endif %}
+    {% if '外部提供正文' in meta.source_tags|default([]) %}<p><a class="btn primary" href="/documents/{{ doc.document_id }}/translation?revision={{ revision_row.revision }}">完整中文译文 / English 对照 →</a></p>{% endif %}
+    {% if doc.attachment_only %}
+    <div class="notice" style="margin-top:16px">此条是附件帖，来源没有提供正文。可在下方附件列表下载原件；音频不转写，PDF 不解析。{% if doc.source_url %} <a href="{{ doc.source_url }}" target="_blank" rel="noopener noreferrer">到知识星球查看原件 ↗</a>{% endif %}</div>
+    {% endif %}
+      {% if meta.source_attachments %}
+      <hr class="sep">
+      <h2>原件与附件（{{ meta.source_attachments|length }}）</h2>
+      <p class="hint">图片在下方显示，点击可打开大图；首次加载时从知识星球获取并在本机缓存。音频不转写，PDF 不解析。</p>
+      {% for file in meta.source_attachments %}
+      <div class="source-file" style="padding:14px 0;border-bottom:1px solid var(--line-soft)">
+        <div style="overflow-wrap:anywhere">{{ file.name or ('图片 ' ~ loop.index) }}</div>
+        <p class="hint">{% if file.name %}{{ file.name.rsplit('.', 1)[-1]|upper }}{% endif %}{% if file.size %} · {{ '%.1f'|format(file.size / 1048576) }} MB{% endif %}</p>
+        {% if file.kind == 'image' and file.image_id %}<figure class="source-image" style="margin:12px 0"><a href="/documents/{{ doc.document_id }}/images/{{ file.image_id }}?revision={{ revision_row.revision }}" target="_blank" rel="noopener"><img src="/documents/{{ doc.document_id }}/images/{{ file.image_id }}?revision={{ revision_row.revision }}" alt="知识星球帖子图片 {{ loop.index }}" loading="lazy" referrerpolicy="no-referrer" style="display:block;max-width:100%;height:auto;border-radius:8px;border:1px solid var(--line);background:#f5f5f2" onerror="this.hidden=true;this.closest('figure').querySelector('[role=status]').hidden=false"></a><figcaption style="margin-top:10px"><a href="/documents/{{ doc.document_id }}/images/{{ file.image_id }}?revision={{ revision_row.revision }}" target="_blank" rel="noopener">打开大图 ↗</a>{% if doc.source_url %} · <a href="{{ doc.source_url }}" target="_blank" rel="noopener noreferrer">知识星球原件 ↗</a>{% endif %}</figcaption><p role="status" hidden>图片暂未加载成功，可刷新重试，或打开知识星球原件查看。</p></figure>{% elif file.kind == 'file' and file.file_id and not is_old %}<a class="btn" href="/documents/{{ doc.document_id }}/attachments/{{ file.file_id }}/download" target="_blank" rel="noopener noreferrer">下载原件 ↓</a>{% elif doc.source_url %}<a href="{{ doc.source_url }}" target="_blank" rel="noopener noreferrer">查看星球原件 ↗</a>{% endif %}
+      </div>
+      {% endfor %}
+      {% endif %}
+    {% if not is_old %}<details class="panel"><summary>纠正行业分类</summary><p class="hint">人工选择会优先于 AI，后续自动整理会保留。可多选；恢复自动分类后使用模型结果。</p><div id="industry-choices" style="display:flex;gap:12px;flex-wrap:wrap">{% for name in industry_options %}<label><input type="checkbox" value="{{ name }}" {{ 'checked' if name in current_industries }}> {{ name }}</label>{% endfor %}</div><p><button type="button" onclick="saveIndustries(false)">保存人工分类</button> <button type="button" onclick="saveIndustries(true)">恢复自动分类</button></p><p id="industry-result" role="status"></p></details>{% endif %}
+    {% if attachment %}
+    <div class="notice" style="margin-top:16px">
+      <a class="btn" href="/documents/{{ doc.document_id }}/original?revision={{ revision_row.revision }}" target="_blank" rel="noopener">打开 PDF 原件</a>
+      <span class="hint">{{ attachment.page_count }} 页 · 以下为提取文字，表格及图表请核对原件</span>
+      {% if attachment.empty_pages %}<p>第 {{ attachment.empty_pages|join('、') }} 页未提取到文字，尚未 OCR。</p>{% endif %}
+    </div>
+    {% endif %}
+{% if search_focus and search_focus.query %}<section id="search-match" class="notice" style="overflow-wrap:anywhere"><strong>原文关键词定位 · 归档版本 {{ revision_row.revision }}</strong>{% if search_focus.match %}<p>“{{ search_focus.query }}” · 第 {{ search_focus.hit }} / {{ search_focus.total }} 处</p><blockquote style="white-space:pre-wrap">…{{ search_focus.match.before }}<mark>{{ search_focus.match.text }}</mark>{{ search_focus.match.after }}…</blockquote><nav aria-label="原文命中导航">{% if search_focus.hit > 1 %}<a class="btn" href="?revision={{ revision_row.revision }}&find={{ search_focus.query|urlencode }}&hit={{ search_focus.hit-1 }}#search-match">← 上一处</a>{% endif %} {% if search_focus.hit < search_focus.total %}<a class="btn" href="?revision={{ revision_row.revision }}&find={{ search_focus.query|urlencode }}&hit={{ search_focus.hit+1 }}#search-match">下一处 →</a>{% endif %}</nav>{% else %}<p>此归档版本未找到“{{ search_focus.query }}”，请核对关键词或返回公司时间线。</p>{% endif %}<p class="hint">按原文字面匹配，仅展示已有正文上下文；不生成研究判断。</p></section>{% endif %}
+{% if evidence_focus %}<section id="source-evidence" class="notice" style="white-space:pre-wrap;overflow-wrap:anywhere"><strong>原文证据定位 · 归档版本 {{ revision_row.revision }}</strong><p>{{ evidence_context.before }}<mark>{{ evidence_focus.quote }}</mark>{{ evidence_context.after }}</p><p>人工摘录 · {{ evidence_focus.topic }}{% if evidence_focus.company_name %} · 人工关联：{{ evidence_focus.company_name }}{% endif %}</p>{% if evidence_focus.note %}<p>个人说明：{{ evidence_focus.note }}</p>{% endif %}</section>{% endif %}
+{% if not doc.attachment_only %}<details class="panel" id="evidence-tool"><summary>摘录原文证据 · 已保存 {{ document_clips|length }} 条</summary><p class="hint">选中下方正文，再点击“带入选中文字”，或粘贴连续原文。系统核对后锁定当前归档版本；人工关联公司不等于已核实公司事实。</p><button class="btn" type="button" id="capture-evidence">带入选中文字</button><form id="evidence-form"><p><textarea id="evidence-quote" rows="4" minlength="2" maxlength="2000" placeholder="连续原文，2至2000字" required style="width:100%"></textarea></p><label>主题 <select id="evidence-topic">{% for name in evidence_topics %}<option {{ 'selected' if name=='其他' }}>{{ name }}</option>{% endfor %}</select></label><p><label>人工关联公司 <select id="evidence-company" style="max-width:100%"><option value="">暂不关联公司</option>{% for company in evidence_companies %}<option value="{{ company.stock_id }}">{{ company.name or company.code }}</option>{% endfor %}</select></label></p><p><textarea id="evidence-note" rows="2" maxlength="3000" placeholder="个人说明（可选，与原文分开保存）" style="width:100%"></textarea></p><button class="btn primary" type="submit">保存证据摘录</button> <a href="/evidence">打开证据库 →</a><p id="evidence-status" role="status"></p></form>{% for clip in document_clips[:10] %}<p><a href="/documents/{{ clip.document_id }}?revision={{ clip.revision }}&excerpt={{ clip.id }}#source-evidence">{{ clip.topic }} · r{{ clip.revision }} · {{ clip.quote[:65] }}…</a></p>{% endfor %}</details>{% endif %}
+    <div class="body">
+      {% if not doc.attachment_only %}
+      {% if pdf_pages %}
+        {% for page in pdf_pages %}
+        <section id="page-{{ page.number }}" class="pdf-page">
+          <h2>第 {{ page.number }} 页 <a class="hint" target="_blank" rel="noopener" href="/documents/{{ doc.document_id }}/original?revision={{ revision_row.revision }}#page={{ page.number }}">查看此页原件 ↗</a></h2>
+          <pre class="pdf-text">{{ page.text or '本页没有可提取的文字，请查看原件。' }}</pre>
+        </section>
+        {% endfor %}
+      {% else %}{{ body_html | safe }}{% endif %}
+      {% endif %}
+    </div>
+  </article>
+
+  <div>
+    {% if not is_old %}
+    <details class="panel" style="margin-bottom:14px">
+      <summary>整理资料信息</summary>
+      <form id="metadata-form" data-document-id="{{ doc.document_id }}" style="margin-top:12px">
+        <label>标题<input name="title" value="{{ doc.title }}" required></label>
+        <label>资料类型<select name="content_type">{% for code, label in CONTENT_TYPES.items() %}<option value="{{ code }}" {{ 'selected' if code == doc.content_type }}>{{ label }}</option>{% endfor %}</select></label>
+        <label>研究机构<input name="institution" value="{{ meta.institution or '' }}" placeholder="例如：某某证券"></label>
+        <label>报告期<input name="report_period" value="{{ meta.report_period or '' }}" placeholder="例如：2026Q3"></label>
+        <label>发布日期<input type="date" name="published_at" value="{{ doc.published_at|day if doc.published_at else '' }}"></label>
+        <label>A 股代码<input name="stock_codes" value="{{ stocks|map(attribute='code')|join(', ') }}" placeholder="多个六位代码用逗号分隔"></label>
+        <p class="hint">保存后保留旧版本；不知道的信息可以留空。</p>
+        <button class="btn primary" type="submit">保存信息</button>
+        <p id="metadata-status" class="hint" role="status"></p>
+      </form>
+    </details>
+    {% endif %}
+    <div class="panel">
+      <h2 style="margin:0 0 12px">元信息</h2>
+      <div class="meta" style="grid-template-columns:1fr">
+        <div><span class="k">发布时间</span><span class="v">{{ doc.published_at|dt(doc.date_precision) }}</span></div>
+        <div><span class="k">导入时间</span><span class="v">{{ doc.imported_at|dt('second') }}</span></div>
+        <div><span class="k">日期精度</span><span class="v">{{ doc.date_precision }}</span></div>
+        <div><span class="k">来源平台</span><span class="v">{{ doc.source_platform or '未知' }}</span></div>
+        <div><span class="k">{{ '星球' if doc.source_platform=='zsxq' else '机构／信源' }}</span><span class="v">{{ doc.source_space_name or '未知' }}</span></div>
+        <div><span class="k">作者</span><span class="v">{{ doc.author_name or '未知' }}</span></div>
+        <div><span class="k">研究机构</span><span class="v">{{ meta.institution or '未知' }}</span></div>
+        <div><span class="k">报告期</span><span class="v">{{ meta.report_period or '未知' }}</span></div>
+        <div><span class="k">正文字数</span><span class="v">{{ body_chars }}</span></div>
+        <div><span class="k">文档 ID</span><span class="v" style="font-family:ui-monospace,Menlo,monospace;font-size:11px">{{ doc.document_id }}</span></div>
+      </div>
+      {% if doc.source_url %}
+      <hr class="sep">
+      <div class="hint" style="overflow-wrap:anywhere">原文链接：<a href="{{ doc.source_url }}" target="_blank" rel="noopener noreferrer">{{ doc.source_url }}</a></div>
+      {% endif %}
+
+    </div>
+
+    <div class="panel" style="margin-top:14px">
+      <h2 style="margin:0 0 10px">版本（{{ revisions|length }}）</h2>
+      {% for r in revisions %}
+      <div style="display:flex;justify-content:space-between;font-size:12.5px;padding:5px 0;border-bottom:1px solid var(--line-soft)">
+        <a href="/documents/{{ doc.document_id }}?revision={{ r.revision }}">
+          r{{ '%04d' % r.revision }}{% if r.revision == doc.current_revision %} <span class="badge">当前</span>{% endif %}
+        </a>
+        <span class="hint">{{ r.imported_at|dt('second') }}</span>
+      </div>
+      {% endfor %}
+    </div>
+
+    <div class="panel" style="margin-top:14px">
+      <h2 style="margin:0 0 10px">归档位置</h2>
+      <div class="hint" style="word-break:break-all">{{ revision_row.archive_path }}</div>
+      <hr class="sep">
+      <div class="hint">正文哈希<br><span style="font-family:ui-monospace,Menlo,monospace;font-size:10.5px;word-break:break-all">{{ revision_row.body_hash }}</span></div>
+    </div>
+  </div>
+</div>
+
+<script>async function saveIndustries(reset){const labels=[...document.querySelectorAll('#industry-choices input:checked')].map(x=>x.value);const result=document.getElementById('industry-result');try{const r=await fetch('/api/v1/research/industries/{{ doc.document_id }}',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({industries:reset?null:labels})});const v=await r.json();if(!r.ok)throw Error(v.detail||'保存失败');result.textContent=reset?'已恢复自动分类':'人工分类已保存';}catch(e){result.textContent=e.message;}}</script>
+<script>
+let selectedEvidence='';document.addEventListener('selectionchange',()=>{const selection=window.getSelection();const root=document.querySelector('.doc .body');if(root&&selection&&selection.rangeCount&&root.contains(selection.anchorNode)&&root.contains(selection.focusNode)&&selection.toString().trim())selectedEvidence=selection.toString();});
+const captureEvidence=document.getElementById('capture-evidence');if(captureEvidence)captureEvidence.onclick=()=>{document.getElementById('evidence-quote').value=selectedEvidence;document.getElementById('evidence-status').textContent=selectedEvidence?'已带入选中文字，请选择主题后保存':'请先选中正文，或粘贴连续原文';};
+const evidenceForm=document.getElementById('evidence-form');if(evidenceForm)evidenceForm.onsubmit=async e=>{e.preventDefault();const status=document.getElementById('evidence-status');const button=evidenceForm.querySelector('button[type=submit]');button.disabled=true;try{const r=await fetch('/api/v1/documents/{{ doc.document_id }}/evidence',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({revision:{{ revision_row.revision }},quote:document.getElementById('evidence-quote').value,topic:document.getElementById('evidence-topic').value,company_id:document.getElementById('evidence-company').value,note:document.getElementById('evidence-note').value})});const v=await r.json();if(!r.ok)throw Error(v.detail||'保存失败');status.replaceChildren(document.createTextNode(v.created?'摘录已保存。':v.hidden?'此摘录已隐藏，可到证据库恢复。':'此摘录已存在。'));const link=document.createElement('a');link.href=v.url;link.textContent=' 查看原文证据定位 →';status.append(link);}catch(e){status.textContent=e.message;}finally{button.disabled=false;}};
+</script>
+{% if not is_old %}<script src="/static/document.js" defer></script>{% endif %}
+{% endblock %}

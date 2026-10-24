@@ -1,0 +1,84 @@
+[
+  {
+    "id": "bloomberg-outlook-2026",
+    "provider": "bloomberg",
+    "title": "Global Index 2026 Outlook",
+    "title_zh": "彭博指数：2026全球指数展望",
+    "pdf_url": "https://assets.bbhub.io/professional/sites/41/Outlook-2026.pdf",
+    "version": "Bloomberg Indices公开指数展望；不是Bloomberg Intelligence研报库",
+    "guide_zh": "报告从指数主题观察2026年的市场方向，涉及人工智能、机器人等产业线索。发布方为Bloomberg Indices，应与Bloomberg Intelligence和BloombergNEF的研究区分；具体图表、定义及方法说明请核对英文原件。",
+    "published_at": null
+  },
+  {
+    "id": "gs-americas-first-2026",
+    "provider": "goldman_sachs",
+    "title": "Top of Mind: Americas First",
+    "title_zh": "高盛：美洲优先",
+    "pdf_url": "https://www.goldmansachs.com/pdfs/insights/goldman-sachs-research/americas-first/report.pdf",
+    "version": "官方公开删节版，Top of Mind第145期",
+    "guide_zh": "报告讨论美国对西半球政策变化可能带来的经济、能源与地缘政治影响，涵盖拉美经济、石油及跨大西洋关系等议题。本件为官方公开删节版，应结合披露声明阅读。",
+    "published_at": "2026-01-26"
+  },
+  {
+    "id": "ms-big-picture-2026",
+    "provider": "morgan_stanley",
+    "title": "Big Picture: Key Themes for 2026",
+    "title_zh": "摩根士丹利投资管理：2026年关键主题",
+    "pdf_url": "https://www.morganstanley.com/im/publication/insights/articles/article_bigpicturekeythemesfor2026_a4.pdf",
+    "version": "Morgan Stanley Investment Management公开主题报告，非客户股票研报全集",
+    "guide_zh": "报告围绕实际利率、货币体系、贸易政策、中国转型、人工智能和新兴市场等主题讨论2026年的宏观环境。它由投资管理部门发布，需与摩根士丹利其他研究部门的观点区分。",
+    "published_at": null,
+    "html_url": "https://www.morganstanley.com/im/en-us/institutional-investor/insights/big-picture/big-picture-key-themes-for-2026.html"
+  },
+  {
+    "id": "jpm-outlook-2026",
+    "provider": "jpmorgan",
+    "title": "Outlook 2026: Promise and Pressure",
+    "title_zh": "摩根大通私人银行：2026年展望",
+    "pdf_url": "https://privatebank.jpmorgan.com/content/dam/jpm-pb-aem/global/en/documents/outlook2026/JPMorganOutlook2026PromiseandPressure.pdf",
+    "version": "J.P. Morgan Private Bank公开展望，非Global Research客户报告全集",
+    "guide_zh": "该展望以人工智能、全球经济分化及通胀等长期力量为背景，讨论机会与压力并存的环境。发布部门为私人银行，不能直接当作摩根大通所有研究团队的一致结论。",
+    "published_at": null
+  },
+  {
+    "id": "ubs-year-ahead-2026",
+    "provider": "ubs",
+    "title": "Year Ahead 2026: Escape velocity?",
+    "title_zh": "瑞银：2026年前瞻——能否达到逃逸速度？",
+    "pdf_url": "https://advisors.ubs.com/mike.pistiolis/mediahandler/media/766702/UBS_YA2026_global_en_digital_accessible_2025_11C.pdf",
+    "version": "UBS House View公开财富管理展望",
+    "guide_zh": "这是瑞银House View的2026年前瞻公开版本，可用于阅读该机构对年度经济与市场主题的框架。报告属于财富管理观点，具体预测、条件及风险提示以英文PDF为准。",
+    "published_at": null
+  },
+  {
+    "id": "citi-exec-x-2026",
+    "provider": "citi",
+    "title": "Exec-X: Ten Global Insights for Leaders",
+    "title_zh": "花旗研究院：面向决策者的十项全球洞察",
+    "pdf_url": "https://www.citigroup.com/rcs/citigpa/storage/public/Citi_Institute_Exec-X_Report_2026.pdf",
+    "version": "Citi Institute公开报告，2026年2月版",
+    "guide_zh": "报告从人工智能、地缘格局、金融市场变化及数字资产等方向汇集十项洞察。它是一份跨主题综述，可作为继续检索相关专题研究的入口。",
+    "published_at": null
+  },
+  {
+    "id": "bofa-macro-views-2026",
+    "provider": "bofa",
+    "title": "10 Key Macro Views Shaping 2026",
+    "title_zh": "美银全球研究：影响2026年的十大宏观观点",
+    "pdf_url": "https://business.bofa.com/content/dam/flagship/global-research/2026-economy-market-outlook-themes.pdf",
+    "version": "官方公开删节／营销版本；原始报告2025-12-02发布",
+    "guide_zh": "这份公开删节材料概括了美银对美国经济、人工智能投入、新兴市场及中国增长等宏观主题的看法。它不是原始26页报告的完整替代，阅读时需保留预测条件与部门属性。",
+    "published_at": "2025-12-02",
+    "html_url": "https://newsroom.bankofamerica.com/content/newsroom/press-releases/2025/12/bofa-global-research-forecasts-stronger-than-expected-economic-g.html"
+  },
+  {
+    "id": "db-perspectives-2026",
+    "provider": "deutsche_bank",
+    "title": "PERSPECTIVES Annual Outlook 2026",
+    "title_zh": "德意志银行：2026年度展望",
+    "pdf_url": "https://wealth.db.com/content/dam/deutschewealth/insights/investing-insights/economic-and-market-outlook/2026/PERSPECTIVES-Annual-Outlook-2026.pdf",
+    "version": "Deutsche Bank Wealth Management公开年度展望",
+    "guide_zh": "报告围绕政治、经济、政策、美元、债券、股票、商品及另类资产等主题讨论2026年环境，并附宏观预测和术语说明。它属于财富管理年度展望，不能视为已验证的未来结果。",
+    "published_at": null
+  }
+]

@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}首页 · 股票研究知识库{% endblock %}
+{% block content %}
+
+<form class="searchbar" action="/documents" method="get">
+  <input type="text" name="q" placeholder="搜索全文、公司名称、代码或机构" autocomplete="off">
+  <button class="btn" type="submit">查找</button>
+</form>
+
+<section class="panel"><h2>资料处理进度</h2><p>采集入库、AI 正文整理与附件下载分别统计；附件不转写、不解析。</p><div style="display:flex;gap:20px;flex-wrap:wrap">{% for key,label in [('pending','待分析'),('complete','摘要完成'),('attachment','仅附件'),('insufficient','正文不足'),('failed','失败待重试')] %}<a href="/documents?processing={{ key }}">{{ label }} <strong>{{ processing_counts.get(key,0) }}</strong></a>{% endfor %}</div><p><a href="/settings">查看任务状态 / 重试整理 →</a> · <a href="/documents?file_type=pdf">PDF 附件</a> · <a href="/documents?file_type=audio">音频附件</a></p></section>
+<div class="tiles">
+  <div class="tile">
+    <div class="k">今日入库</div>
+    <div class="v">{{ stats.imported_today }}</div>
+    <div class="n">按导入时间统计</div>
+  </div>
+  <div class="tile">
+    <div class="k">今日发表</div>
+    <div class="v">{{ stats.published_today }}</div>
+    <div class="n">按原文发布时间统计</div>
+  </div>
+  <div class="tile">
+    <div class="k">资料总数</div>
+    <div class="v">{{ stats.total }}</div>
+    <div class="n">版本共 {{ stats.revisions }} 个</div>
+  </div>
+  <div class="tile">
+    <div class="k">公司条目</div>
+    <div class="v">{{ stats.stocks }}</div>
+    <div class="n">含 AI 提及，身份待核实</div>
+  </div>
+</div>
+
+<div class="grid2" style="margin-top:26px">
+  <div>
+    <div class="tabs">
+      <a href="/?view=imported" class="{{ 'on' if view == 'imported' else '' }}">今天收到</a>
+      <a href="/?view=published" class="{{ 'on' if view == 'published' else '' }}">今天发表</a>
+      <span class="hint" style="margin-left:auto">补录旧资料时两个日期不同，请勿混看</span>
+    </div>
+
+    {% if today_rows %}
+      <div class="list">
+        {% for row in today_rows %}{% include "_item.html" %}{% endfor %}
+      </div>
+    {% else %}
+      <div class="empty">
+        {{ '今天还没有新入库的资料' if view == 'imported' else '今天没有发布的资料' }}。
+        把文件放进 <code>inbox/</code> 后点击「立即扫描」。
+      </div>
+    {% endif %}
+
+    <h2>最近入库</h2>
+    {% if recent %}
+      <div class="list">
+        {% for row in recent %}{% include "_item.html" %}{% endfor %}
+      </div>
+    {% else %}
+      <div class="empty">知识库还是空的。运行 <code>python -m app.seed</code> 写入示例数据，或把资料放进 inbox/。</div>
+    {% endif %}
+  </div>
+
+  <div>
+    <div class="panel">
+      <div style="display:flex;justify-content:space-between;align-items:baseline">
+        <h2 style="margin:0 0 10px">个股</h2>
+        <a class="hint" href="/stocks">全部</a>
+      </div>
+      {% if stocks %}
+        {% for s in stocks %}
+        <div class="stockrow">
+          <div>
+            <div class="nm"><a href="/stocks/{{ s.stock_id }}">{{ s.name or s.code }}</a></div>
+            <div class="cd">{{ s.code }} · {{ s.stock_id }}</div>
+          </div>
+          <span class="badge">{{ s.doc_count }} 条</span>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="hint">还没有关联个股的资料。</div>
+      {% endif %}
+    </div>
+
+    <div class="panel" style="margin-top:14px">
+      <h2 style="margin:0 0 10px">存储与导入</h2>
+      <div class="meta" style="grid-template-columns:1fr">
+        <div><span class="k">数据目录</span><span class="v">{{ storage_path }}</span></div>
+        <div><span class="k">库 ID</span><span class="v">{{ marker.get('library_id', '—') }}</span></div>
+        {% if usage.total %}
+        <div><span class="k">可用空间</span><span class="v">{{ (usage.free / 1073741824) | round(1) }} GB / 已用 {{ usage.used_pct }}%</span></div>
+        {% endif %}
+      </div>
+      <hr class="sep">
+      {% if batches %}
+        {% for b in batches %}
+        <div class="hint" style="margin-bottom:6px">
+          {{ b.file_name }} · {{ b.created }} 新增 / {{ b.updated }} 更新 / {{ b.duplicated }} 重复 / {{ b.failed }} 失败
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="hint">尚无导入批次。</div>
+      {% endif %}
+      <form method="post" action="/imports/scan" style="margin-top:12px">
+        <button class="btn primary" type="submit">立即扫描 inbox</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}AI 与每日更新{% endblock %}
+{% block content %}
+<h1>AI 与每日更新</h1>
+<p>接口采集与本地处理 → 必要时 DeepSeek 分类整理 → <a href="/reading">AI 阅读</a></p>
+<section class="panel">
+<h2>DeepSeek 设置</h2>
+<p>开启整理后，程序会将已添加星球的正文发送给 DeepSeek。原文保留本地，附件提供原件下载，不解析 PDF、不转写音频。</p>
+<form id="settings">
+<p><label>API Key（{{ '已保存，留空保留' if has_key else '尚未设置' }}）<br><input type="password" id="key" autocomplete="new-password" placeholder="sk-…"></label></p>
+<p><label>模型 <select id="model"><option value="deepseek-flash" {{ 'selected' if settings.model == 'deepseek-flash' }}>DeepSeek Flash</option><option value="deepseek-v4-pro" {{ 'selected' if settings.model == 'deepseek-v4-pro' }}>DeepSeek V4 Pro</option></select></label></p>
+<p><label><input id="poll-enabled" type="checkbox" {{ 'checked' if settings.poll_enabled }}> 高频采集：新帖先入库，无需等待AI整理</label> <label>检查间隔 <select id="poll-minutes">{% for minutes in [5,10,15,30,60] %}<option value="{{ minutes }}" {{ 'selected' if settings.poll_minutes==minutes }}>{{ minutes }} 分钟</option>{% endfor %}</select></label></p><p class="hint">每次最多检查3页最新内容；失败后至少15分钟再试。程序运行且电脑联网时有效，新帖可在资料库先读，行业和公司AI整理仍按每日任务执行。</p>
+<p><label><input id="enabled" type="checkbox" {{ 'checked' if settings.enabled }}> 每日自动采集并整理（正常采集最近 24 小时，停机后按成功水位补漏）</label></p>
+<p><label><input id="economy" type="checkbox" {{ 'checked' if settings.economy_enabled }}> 节省模式（推荐）：每日仅分类摘要，不自动运行双次评分和事件关系判断</label></p>
+<p class="hint">星球与有道正文、图片附件、财务数据走接口；名称代码匹配、检索和归档走本地数据库，不消耗模型 token。送模型前去掉网址和图片标记，保留完整文字；相同正文复用请求结果，仅标题或链接变化复用已有分析。深度整理和全文翻译仍可手动运行并计费。</p>
+<p><label>北京时间 <input id="time" type="time" value="{{ settings.daily_time }}" required></label></p>
+<p><label><input id="intelligence" type="checkbox" {{ 'checked' if settings.intelligence_enabled }}> 关闭节省模式后，每日采集后进行深度整理：独立双次评分、事件识别、个股调研要点</label></p>
+<p><label>每日模型请求上限 <input id="request-limit" type="number" min="1" max="5000" value="{{ settings.daily_request_limit }}"></label> 今日已请求 {{ usage.requests }} 次 · 已记录 {{ usage.tokens }} tokens（仅统计接入回执后的请求）</p>
+<p><label>试行精选门槛 <input id="threshold" type="number" min="0" max="100" value="{{ settings.selection_threshold }}"></label> 双次评分取低分；门槛尚未按人工样本校准，支持人工加入 / 移出精选。</p>
+<button type="submit">保存设置</button>
+</form>
+<p>Key 保存在系统密钥环；也可通过 DEEPSEEK_API_KEY 环境变量提供。需要另行配置后台服务才能随登录自动启动；电脑关机、休眠或断网时不能采集。每日正常启动一次；临时失败间隔 15 分钟重试，最多两次，额度和认证问题需处理后重试。</p>
+</section>
+<section class="panel"><h2>立即运行</h2>
+<button type="button" onclick="run(true)">采集最近 24 小时并整理</button>
+<button type="button" onclick="run(false)">整理已归档星球资料</button>
+<button type="button" onclick="enrich()">深度整理已有资料：评分 / 事件 / 个股时间线</button>
+<p>已有摘要会复用，深度整理通常每篇增加两次独立模型请求；调用有回执与每日请求上限。</p>
+<p>已成功整理的同一版本自动跳过；原文更新后重新整理。模型调用按 DeepSeek 账户计费。</p>
+<p id="message" role="status">{{ state.status }} · {{ state.message }}</p>
+<p id="counts"></p><div id="errors"></div>
+</section>
+<section class="panel"><h2>阅读与收藏备份</h2><p><a href="/api/v1/research/reading-state/export">导出已读和收藏状态</a></p><label>导入此前导出的 JSON <input type="file" id="reading-state-file" accept="application/json,.json"></label><button type="button" onclick="importReadingState()">导入并合并</button><p class="hint">仅合并本资料库中存在的文档，保留其他状态。</p></section>
+<section class="panel"><h2>精选校准</h2><p>在阅读页人工加入 / 移出精选，形成你自己的评审样本。</p><button onclick="loadCalibration()" type="button">查看当前样本评估</button><p id="calibration"></p></section>
+<section class="panel"><h2>整理任务记录</h2><button type="button" onclick="loadRuns()">查看最近30次任务</button><div id="run-list"></div></section>
+<section class="panel"><h2>模型请求回执</h2><p>网络中断后结果未确认的请求会暂停重复调用。请核对 DeepSeek 账户后再解除暂停并重试，重试可能产生费用。</p><button type="button" onclick="loadReceipts()">查看最近请求记录</button><div id="receipt-list"></div></section>
+<script>
+const message=document.getElementById('message');
+async function post(url,data){const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});const value=await r.json();if(!r.ok)throw Error(value.detail||'操作失败');return value;}
+document.getElementById('settings').onsubmit=async e=>{e.preventDefault();try{await post('/api/v1/research/settings',{economy_enabled:document.getElementById('economy').checked,api_key:document.getElementById('key').value,poll_enabled:document.getElementById('poll-enabled').checked,poll_minutes:Number(document.getElementById('poll-minutes').value),enabled:document.getElementById('enabled').checked,daily_time:document.getElementById('time').value,model:document.getElementById('model').value,intelligence_enabled:document.getElementById('intelligence').checked,daily_request_limit:Number(document.getElementById('request-limit').value),selection_threshold:Number(document.getElementById('threshold').value)});document.getElementById('key').value='';message.textContent='设置已保存';}catch(e){message.textContent=e.message;}};
+async function enrich(){try{const s=await post('/api/v1/research/enrich',{});message.textContent=s.message;}catch(e){message.textContent=e.message;}}
+async function run(collect){try{const s=await post('/api/v1/research/run?collect='+collect,{});message.textContent=s.message;}catch(e){message.textContent=e.message;}}
+async function importReadingState(){try{const file=document.getElementById('reading-state-file').files[0];if(!file)throw Error('请先选择文件');if(file.size>2000000)throw Error('文件超过2MB');const data=await post('/api/v1/research/reading-state/import',JSON.parse(await file.text()));message.textContent='导入 '+data.imported+' 条 / 跳过 '+data.skipped+' 条';}catch(e){message.textContent=e.message;}}
+async function loadCalibration(){const r=await fetch('/api/v1/research/calibration');const v=await r.json();const pct=n=>n===null?'暂无数据':(n*100).toFixed(1)+'%';document.getElementById('calibration').textContent='已标注 '+v.labelled+' 条 / 已评分 '+v.scored+' 条 / 覆盖率 '+pct(v.coverage)+' / 当前样本准确率 '+pct(v.accuracy)+'。'+v.note;}
+async function loadRuns(){const r=await fetch('/api/v1/research/runs');const v=await r.json();const list=document.getElementById('run-list');list.replaceChildren();for(const job of v.runs||[]){const p=document.createElement('p');p.textContent=(job.started_at||'等待启动')+' · '+job.status+' · 完成 '+(job.processed||0)+' / 跳过 '+(job.skipped||0)+' / 失败 '+(job.failed||0)+' · '+job.message;list.append(p);}if(!list.childNodes.length)list.textContent='暂无新任务记录';}
+async function loadReceipts(){const r=await fetch('/api/v1/research/receipts');const data=await r.json();const list=document.getElementById('receipt-list');list.replaceChildren();for(const item of data.receipts||[]){const p=document.createElement('p');p.textContent=item.updated_at+' · '+item.purpose+' · '+item.status+' · '+item.id.slice(0,10);for(const id of item.document_ids||[]){const a=document.createElement('a');a.href='/documents/'+encodeURIComponent(id);a.textContent=' 查看资料原文 ';p.append(a);}if(['unknown','pending'].includes(item.status)){const b=document.createElement('button');b.textContent='已核对，允许重试';b.onclick=async()=>{try{await post('/api/v1/research/receipts/'+item.id+'/release',{});await loadReceipts();}catch(e){message.textContent=e.message;}};p.append(' ',b);}list.append(p);}}
+setInterval(async()=>{try{const s=await(await fetch('/api/v1/research/status')).json();if(['queued','running','succeeded','partial','failed'].includes(s.status)){message.textContent=s.status+' · '+s.message;document.getElementById('counts').textContent='完成 '+(s.processed||0)+' / 跳过 '+(s.skipped||0)+' / 失败 '+(s.failed||0)+' / 待补处理 '+(s.pending_count||0);const errors=document.getElementById('errors');errors.replaceChildren();[...(s.collection_errors||[]),...(s.errors||[]).map(e=>(e.title||e.document_id)+'：'+e.message)].forEach(text=>{const p=document.createElement('p');p.textContent=text;errors.appendChild(p);});}}catch(e){}},4000);
+</script>
+{% endblock %}

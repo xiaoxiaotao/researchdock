@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}资料库 · 股票研究知识库{% endblock %}
+{% block content %}
+
+<h1>资料库</h1><p class="hint">每条资料可导出正文 PDF，包含来源和已缓存图片；附件原件仍可在详情页下载。</p><p><a href="/evidence">原文证据摘录库 →</a></p>
+<p class="sub">
+  {% if stock %}个股：{{ stock.name or stock.code }} · {% endif %}
+  共 {{ total }} 条{% if filters.file_type or filters.processing or filters.q or filters.content_type or filters.platform or filters.start or filters.end %}（已筛选）{% endif %}
+</p>
+
+<form class="searchbar" action="/documents" method="get">
+  <input type="hidden" name="file_type" value="{{ filters.file_type }}"><input type="hidden" name="processing" value="{{ filters.processing }}">
+  <input type="text" name="q" value="{{ filters.q }}" placeholder="搜索全文、公司名称、代码或机构" autocomplete="off">
+  <input type="hidden" name="stock_id" value="{{ filters.stock_id }}">
+  <input type="hidden" name="source_space_id" value="{{ source_space_id }}">
+  <button class="btn" type="submit">查找</button>
+</form>
+
+<form class="filterbar" action="/documents" method="get">
+  <input type="hidden" name="source_space_id" value="{{ source_space_id }}">
+  <input type="hidden" name="q" value="{{ filters.q }}">
+  <label>附件</label><select name="file_type">{% for key,label in [('', '全部资料'),('pdf','含 PDF'),('audio','含音频'),('file','含文件')] %}<option value="{{ key }}" {{ 'selected' if filters.file_type==key }}>{{ label }}</option>{% endfor %}</select>
+  <label>处理状态</label><select name="processing">{% for key,label in [('', '全部状态'),('pending','待分析'),('complete','摘要完成'),('attachment','仅附件'),('insufficient','正文不足'),('failed','失败待重试')] %}<option value="{{ key }}" {{ 'selected' if filters.processing==key }}>{{ label }}</option>{% endfor %}</select>
+  <input type="hidden" name="stock_id" value="{{ filters.stock_id }}">
+  <label>日期口径</label>
+  <select name="date_field">
+    <option value="imported_at" {{ 'selected' if filters.date_field == 'imported_at' }}>导入时间</option>
+    <option value="published_at" {{ 'selected' if filters.date_field == 'published_at' }}>发布时间</option>
+  </select>
+  <label>从</label>
+  <input type="date" name="start" value="{{ filters.start }}">
+  <label>到</label>
+  <input type="date" name="end" value="{{ filters.end }}">
+  <label>类型</label>
+  <select name="content_type">
+    <option value="">全部</option>
+    {% for code, label in CONTENT_TYPES.items() %}
+    <option value="{{ code }}" {{ 'selected' if filters.content_type == code }}>{{ label }}</option>
+    {% endfor %}
+  </select>
+  <label>来源</label>
+  <select name="platform">
+    <option value="">全部</option>
+    {% for p, n in stats.by_platform.items() %}
+    <option value="{{ p }}" {{ 'selected' if filters.platform == p }}>{{ p }}（{{ n }}）</option>
+    {% endfor %}
+  </select>
+  <button class="btn" type="submit">应用</button>
+  {% if filters.file_type or filters.processing or filters.q or filters.content_type or filters.platform or filters.start or filters.end or filters.stock_id %}
+  <a class="hint" href="/documents">清除筛选</a>
+  {% endif %}
+</form>
+
+{% if filters.content_type or filters.platform or filters.start or filters.end %}
+<div class="notice">
+  当前为筛选结果，不是全库。
+  {% if filters.start or filters.end %}时间范围 {{ filters.start or '不限' }} 至 {{ filters.end or '不限' }}（含开始、不含结束）。{% endif %}
+</div>
+{% endif %}
+
+{% if rows %}
+<div class="list">
+  {% for row in rows %}<div class="document-export-row">{% include "_item.html" %}<a class="btn document-export" href="/documents/{{ row.document_id }}/export.pdf" aria-label="导出 {{ row.title }} 为PDF">导出 PDF</a></div>{% endfor %}
+</div>
+{% else %}
+<div class="empty">没有符合条件的资料。可以放宽时间范围，或改用其它关键词。</div>
+{% endif %}
+
+{% if pages > 1 %}
+<div class="pager">
+  <span>第 {{ page }} / {{ pages }} 页</span>
+  {% set base = '/documents?' + (filters | urlencode) + '&source_space_id=' + source_space_id %}
+  {% if page > 1 %}<a href="{{ base }}&page={{ page - 1 }}">上一页</a>{% endif %}
+  {% if page < pages %}<a href="{{ base }}&page={{ page + 1 }}">下一页</a>{% endif %}
+</div>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}股票研究知识库{% endblock %}</title>
+<link rel="stylesheet" href="/static/app.css">
+{% block extra_head %}{% endblock %}
+</head>
+<body>
+{% set path = request.url.path %}
+<div class="shell">
+  <aside class="side">
+    <div class="brand">研迹<span>RESEARCHDOCK</span></div>
+    <nav class="nav">
+      <a href="/" class="{{ 'on' if path == '/' else '' }}">首页</a>
+      <a href="/following" class="{{ 'on' if path == '/following' else '' }}">我的关注 / 行业</a>
+      <a href="/reading" class="{{ 'on' if path == '/reading' else '' }}">研究动态</a>
+      <a href="/settings" class="{{ 'on' if path == '/settings' else '' }}">AI 与每日更新</a>
+      <a href="/documents" class="{{ 'on' if path.startswith('/documents') else '' }}">资料库</a>
+      <a href="/evidence" class="{{ 'on' if path == '/evidence' else '' }}">原文证据库</a>
+      <a href="/events" class="{{ 'on' if path.startswith('/events') else '' }}">事件与热点</a>
+      <a href="/briefing" class="{{ 'on' if path == '/briefing' else '' }}">研究简报</a>
+      <a href="/stocks" class="{{ 'on' if path == '/stocks' or (path.startswith('/stocks/')) else '' }}">公司研究</a>
+      <a href="/imports" class="{{ 'on' if path.startswith('/imports') else '' }}">导入记录</a>
+      <a href="/sources" class="{{ 'on' if path.startswith('/sources') or path == '/international' else '' }}">信源管理</a>
+      <a href="/agent" class="{{ 'on' if path == '/agent' else '' }}">RSS / Agent 接入</a>
+    </nav>
+    <div class="side-foot">
+      <div><span class="dot {{ '' if storage_ready else 'off' }}"></span>{{ '知识库已连接' if storage_ready else '未连接' }}</div>
+      <div>{{ storage_path }}</div>
+    </div>
+  </aside>
+  <main class="main">
+    {% block content %}{% endblock %}
+  </main>
+</div>
+</body>
+</html>
