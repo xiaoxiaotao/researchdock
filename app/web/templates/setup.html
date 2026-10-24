@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}开始使用 · 研迹 ResearchDock{% endblock %}
+{% block content %}
+<h1>开始使用 ResearchDock</h1>
+<p class="sub">先导入一份资料，再按需要接入信源和 AI。无需 API Key，也能阅读、搜索和导出。</p>
+<section class="panel"><h2>1. 导入第一份资料</h2><p>上传自己有权使用的 TXT、Markdown、JSONL 或 PDF。可以先使用源码 examples 目录中的合成示例，熟悉操作。</p><a class="btn primary" href="/imports">打开导入记录</a> <a class="btn" href="/documents">查看资料库</a></section>
+<section class="panel" style="margin-top:16px"><h2>2. 接入自己的信源（可选）</h2><p>知识星球需要单独安装官方 CLI 并完成自己的授权。网页已登录不等于 CLI 已登录。先同步少量资料，确认正文与来源后再开启周期采集。</p><a class="btn" href="/sources">管理信源</a> <a class="btn" href="/securities">同步证券名称与代码</a></section>
+<section class="panel" style="margin-top:16px"><h2>3. 按需开启 AI</h2><p>分类摘要和翻译会把相关文字发送给 DeepSeek，并可能产生费用。默认节省模式仅做必要的分类摘要；深度评分、事件观察和翻译由你按需运行。</p><a class="btn" href="/settings">AI 与每日更新设置</a></section>
+<section class="panel" style="margin-top:16px"><h2>安装检查</h2><p class="hint">仅检查本机依赖和目录，不读取密钥环、不检查账号登录、不发起外部请求。</p>
+{% if not diagnostics.ok %}<p class="notice">有必需项目未就绪，请先解决下面标为「需处理」的项目。</p>{% endif %}
+<table style="width:100%;border-collapse:collapse"><thead><tr><th style="text-align:left">项目</th><th style="text-align:left">状态</th><th style="text-align:left">说明</th></tr></thead><tbody>{% for item in diagnostics.checks %}<tr><td style="padding:10px 6px">{{ item.title }}</td><td><span class="badge {{ 'warn' if item.status=='error' }}">{{ '正常' if item.status=='ok' else '需处理' if item.status=='error' else '可选' }}</span></td><td>{{ item.detail }}</td></tr>{% endfor %}</tbody></table>
+<p>终端排查：<code>python -m app.doctor</code>。分享检查结果前仍请自行检查内容。</p></section>
+{% endblock %}

@@ -26,7 +26,7 @@ cp config.example.yaml config.yaml
 bash run.sh
 ```
 
-Open http://127.0.0.1:8001. No frontend build or Codex installation is required. Data starts empty; optional synthetic samples: `python -m app.seed`.
+Open http://127.0.0.1:8001. New users can visit `/setup` for guided import and offline installation checks. Run `python -m app.doctor` (or `--json`) to diagnose dependencies without accessing accounts, reading the keyring or making model calls. No frontend build or Codex installation is required. Data starts empty; optional synthetic samples: `python -m app.seed`.
 
 No API key is required for local import and reading. Configure DeepSeek through the system keyring or `DEEPSEEK_API_KEY` in the process environment. Enabled AI tasks transmit the relevant text to DeepSeek and may incur charges. ZSXQ requires your own official CLI installation, authorization and access rights.
 

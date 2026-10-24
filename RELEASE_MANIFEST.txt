@@ -17,6 +17,7 @@ app/company_research.py
 app/company_search.py
 app/config.py
 app/data/international-public-reports.json
+app/doctor.py
 app/document_pdf.py
 app/evidence.py
 app/financial_views.py
@@ -87,6 +88,7 @@ app/web/templates/reading.html
 app/web/templates/report_translation.html
 app/web/templates/research_settings.html
 app/web/templates/securities.html
+app/web/templates/setup.html
 app/web/templates/sources.html
 app/web/templates/stock_detail.html
 app/web/templates/stocks.html
@@ -104,6 +106,7 @@ scripts/build_release.py
 tests/test_company_directory.py
 tests/test_company_research.py
 tests/test_company_search.py
+tests/test_doctor.py
 tests/test_document_pdf.py
 tests/test_evidence.py
 tests/test_financials.py

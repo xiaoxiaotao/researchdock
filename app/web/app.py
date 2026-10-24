@@ -136,6 +136,12 @@ def on_shutdown() -> None:
     jobs.close()
 
 
+@app.get('/setup', response_class=HTMLResponse)
+def setup_page(request: Request):
+    from ..doctor import checks
+    return _render(request,'setup.html',diagnostics=checks(cfg))
+
+
 # ---------- 页面 ----------
 
 @app.get("/", response_class=HTMLResponse)

@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block title %}首页 · 股票研究知识库{% endblock %}
 {% block content %}
+{% if stats.total == 0 %}<section class="panel" style="margin-bottom:20px"><h1 style="margin-top:0">欢迎使用研迹 ResearchDock</h1><p>资料库尚为空。先导入一份资料即可开始，无需配置 AI 或付费账号。</p><a class="btn primary" href="/setup">开始使用 / 检查安装</a> <a class="btn" href="/imports">导入资料</a></section>{% endif %}
 
 <form class="searchbar" action="/documents" method="get">
   <input type="text" name="q" placeholder="搜索全文、公司名称、代码或机构" autocomplete="off">
@@ -56,7 +57,7 @@
         {% for row in recent %}{% include "_item.html" %}{% endfor %}
       </div>
     {% else %}
-      <div class="empty">知识库还是空的。运行 <code>python -m app.seed</code> 写入示例数据，或把资料放进 inbox/。</div>
+      <div class="empty">知识库还是空的。<a href="/imports">上传第一份资料</a>，或查看<a href="/setup">开始使用指南</a>。</div>
     {% endif %}
   </div>
 

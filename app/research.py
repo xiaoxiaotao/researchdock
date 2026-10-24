@@ -7,6 +7,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
 
 import httpx
+from keyring.errors import NoKeyringError
 
 from . import index
 from .industries import CATEGORIES, categories
@@ -34,7 +35,7 @@ class Secrets:
             return os.environ['DEEPSEEK_API_KEY'].strip()
         try:
             return self.backend.get_password('stock-kb.deepseek', self.account)
-        except __import__('keyring').errors.NoKeyringError:
+        except NoKeyringError:
             return None
         except Exception:
             raise ResearchError('无法访问系统密钥环，请检查授权或使用 DEEPSEEK_API_KEY 环境变量') from None
