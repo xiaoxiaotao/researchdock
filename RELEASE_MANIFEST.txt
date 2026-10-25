@@ -15,6 +15,7 @@ android/README.md
 android/app/build.gradle
 android/app/src/androidTest/java/org/researchdock/mobile/LibraryViewsTest.java
 android/app/src/androidTest/java/org/researchdock/mobile/ResearchTextTest.java
+android/app/src/androidTest/java/org/researchdock/mobile/ReturnNavigationTest.java
 android/app/src/main/AndroidManifest.xml
 android/app/src/main/java/org/researchdock/mobile/LibraryViews.java
 android/app/src/main/java/org/researchdock/mobile/MainActivity.java
@@ -117,6 +118,7 @@ docs/open-source/architecture.md
 docs/open-source/mobile-company-codes.md
 docs/open-source/mobile-design.md
 docs/open-source/mobile-interactions.md
+docs/open-source/mobile-return-position.md
 docs/open-source/product-review-20261025.md
 docs/open-source/releasing.md
 docs/open-source/sources.md
