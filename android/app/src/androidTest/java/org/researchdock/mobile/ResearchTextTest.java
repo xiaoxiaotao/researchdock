@@ -12,7 +12,7 @@ public class ResearchTextTest {
   InstrumentationRegistry.getInstrumentation().runOnMainSync(()->{
    android.content.Context c=InstrumentationRegistry.getInstrumentation().getTargetContext();LinearLayout parent=new LinearLayout(c);parent.setOrientation(LinearLayout.VERTICAL);int[] images={0};
    ResearchText renderer=new ResearchText(c,18,(p,id,caption)->images[0]++);
-   renderer.render(parent,"# 主标题\n## 次标题\n### 小标题\n\n核心观点：原文观点\n营业收入 **100万元**，净利润 -5万元。\n\n风险提示：需求下降\n> 保留原始引用\n- 项目一\n\n| 指标 | 数值 |\n| --- | --- |\n| 收入 | 100 |\n\n[来源](https://example.com)\n![图](asset:"+"a".repeat(64)+")");
+   renderer.render(parent,"# 主标题\n## 次标题\n### 小标题\n\n核心观点：原文观点\n营业收入 **100万元**，净利润 -5万元。\n\n风险提示：需求下降\n> 保留原始引用\n- 项目一\n\n| 指标 | 数值 |\n| --- | --- |\n| 收入 | 100 |\n\n[来源](https://example.com)\n![图](asset:"+new String(new char[64]).replace('\0','a')+")");
    assertEquals(1,images[0]);assertTrue(find(parent,HorizontalScrollView.class));assertTrue(text(parent).contains("100万元"));assertTrue(text(parent).contains("-5万元"));assertTrue(text(parent).contains("需求下降"));assertFalse(text(parent).contains("**"));assertTrue(link(parent));
    CharSequence unsafe=renderer.inline("[危险](javascript:alert) [安全](https://example.com)");URLSpan[] links=((Spanned)unsafe).getSpans(0,unsafe.length(),URLSpan.class);assertEquals(1,links.length);assertEquals("https://example.com",links[0].getURL());
   });
