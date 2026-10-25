@@ -44,7 +44,7 @@ final class ResearchText {
  }
  void render(LinearLayout parent,String source){String[] lines=source.replace("\r","").split("\n",-1);StringBuilder pending=new StringBuilder();LinearLayout section=parent;boolean code=false;
   for(int i=0;i<=lines.length;i++){String line=i<lines.length?lines[i]:"",trim=line.trim();
-   boolean heading=trim.matches("#{1,6}\\s+.+")||trim.matches("【[^】]{1,40}】")||trim.matches("[一二三四五六七八九十]+[、．].{1,40}");
+   boolean heading=trim.matches("[^：:|]{2,20}[：:]")||trim.matches("#{1,6}\\s+.+")||trim.matches("【[^】]{1,40}】")||trim.matches("[一二三四五六七八九十]+[、．].{1,40}");
    boolean bullet=trim.matches("(?:[-*+]\\s+|[0-9]+[.)、]\\s*).+"),quote=trim.startsWith(">"),rule=trim.matches("(?:-{3,}|\\*{3,}|_{3,})");
    boolean tabular=i+1<lines.length&&trim.contains("|")&&divider(lines[i+1]);
    Matcher image=Pattern.compile("!\\[([^]]*)\\]\\((asset:[a-f0-9]{64}|https?://[^\\s)]+)\\)").matcher(trim);boolean img=image.matches();
