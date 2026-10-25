@@ -10,8 +10,16 @@ from . import index
 def records(cfg,storage):
     with index.connect(cfg.db_path) as conn:
         rows=conn.execute('SELECT d.*,s.body FROM documents d JOIN document_search s ON d.document_id=s.document_id WHERE d.deleted_at IS NULL ORDER BY d.document_id').fetchall()
+        summaries={row['document_id']:read_json(storage.path(f"derived/summaries/{row['document_id']}.json")) or {} for row in rows}
+        names={r[0] or r[1] for r in conn.execute('SELECT name,code FROM stocks')}
         for row in rows:
-            summary=read_json(storage.path(f"derived/summaries/{row['document_id']}.json")) or {}
+            summary=summaries[row['document_id']]
+            if summary.get('revision')==row['current_revision']:
+                names.update(s['name'] for s in summary.get('stocks',[]) if isinstance(s,dict) and isinstance(s.get('name'),str) and s['name'] in row['body'] and s.get('evidence') and s['evidence'] in row['body'])
+        from .securities import Securities
+        matches=Securities(storage).matches([{'stock_id':name,'name':name} for name in sorted(names) if name])
+        for row in rows:
+            summary=summaries[row['document_id']]
             if summary.get('revision')!=row['current_revision']:summary={}
             editorial=(read_json(storage.path('catalog/editorial.json')) or {}).get(row['document_id'],{})
             companies=[r[0] or r[1] for r in conn.execute('SELECT DISTINCT s.name,s.code FROM stocks s JOIN document_stocks ds ON ds.stock_id=s.stock_id WHERE ds.document_id=?',(row['document_id'],))]
@@ -32,7 +40,7 @@ def records(cfg,storage):
                     if digest:body=body.replace(url,'asset:'+digest)
             for path in storage.path('cache/source-images').glob(f"{row['document_id']}-r{row['current_revision']}-*.bin"):add(path,'image','星球原图')
             for path in storage.path(f"cache/document-pdfs/{row['document_id']}").glob(f"r{row['current_revision']}-*.pdf"):add(path,'pdf',row['title']+'.pdf')
-            yield dict(_local_assets=local_assets,assets=assets,document_id=row['document_id'],revision=row['current_revision'],title=row['title'],body=body,summary=summary.get('summary',''),published_at=row['published_at'] or '',source_name=row['source_space_name'] or row['source_platform'] or '',source_url=row['source_url'] or '',industries=editorial.get('industries') or summary.get('industries',[]),companies=companies)
+            yield dict(_local_assets=local_assets,assets=assets,document_id=row['document_id'],revision=row['current_revision'],title=row['title'],body=body,summary=summary.get('summary',''),published_at=row['published_at'] or '',source_name=row['source_space_name'] or row['source_platform'] or '',source_url=row['source_url'] or '',industries=editorial.get('industries') or summary.get('industries',[]),companies=companies,company_securities=[dict(name=name,canonical_name=matches[name]['name'],security_id=matches[name]['security_id'],code=matches[name]['code'],exchange=matches[name]['exchange']) for name in companies if name in matches])
 
 
 def sync_once(cfg,storage,url,token,transport=None):

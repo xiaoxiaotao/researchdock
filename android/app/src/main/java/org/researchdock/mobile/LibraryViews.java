@@ -13,6 +13,6 @@ final class LibraryViews {
   if(days>0){try{LocalDate date=LocalDate.parse(day(d));if(date.isBefore(today.minusDays(days-1))||date.isAfter(today))return false;}catch(Exception e){return false;}}
   if(mode.equals("未读")&&opened||mode.equals("关注")&&!followed||mode.equals("续读")&&(progress<=0.02f||progress>=0.98f))return false;
   String normalized=query.trim().toLowerCase(Locale.ROOT);
-  return normalized.isEmpty()||(d.optString("title")+" "+d.optString("summary")+" "+d.optString("companies")+" "+d.optString("industries")).toLowerCase(Locale.ROOT).contains(normalized);
+  return normalized.isEmpty()||(d.optString("title")+" "+d.optString("summary")+" "+d.optString("companies")+" "+d.optString("company_securities")+" "+d.optString("industries")).toLowerCase(Locale.ROOT).contains(normalized);
  }
 }

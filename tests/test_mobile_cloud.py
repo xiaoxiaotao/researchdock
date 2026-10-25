@@ -39,3 +39,14 @@ class MobileCloudTests(unittest.TestCase):
  def test_missing_or_shared_tokens_fail_closed(self):
   with tempfile.TemporaryDirectory() as tmp:
    for p,r in [('',''),(P,P)]:self.assertEqual(TestClient(create_app(tmp,p,r)).get('/v1/documents').status_code,503)
+
+ def test_company_codes_roundtrip_and_reject_conflicting_identity(self):
+  with tempfile.TemporaryDirectory() as tmp:
+   client=TestClient(create_app(tmp,P,R));push={'Authorization':'Bearer '+P};read={'Authorization':'Bearer '+R}
+   ref={'name':'示例公司','canonical_name':'示例公司','security_id':'hk00700','code':'00700','exchange':'hk'}
+   doc={**DOC,'company_securities':[ref]}
+   self.assertEqual(client.post('/v1/sync',headers=push,json={'library_id':'demo','documents':[doc]}).status_code,200)
+   self.assertEqual(client.get('/v1/documents',headers=read).json()['documents'][0]['company_securities'],[ref])
+   self.assertEqual(client.get('/v1/documents/'+DOC['document_id'],headers=read).json()['company_securities'],[ref])
+   for bad in [{**ref,'code':'700'},{**ref,'security_id':'sz000001'},{**ref,'name':'未关联公司'}]:
+    self.assertEqual(client.post('/v1/sync',headers=push,json={'library_id':'demo','documents':[{**DOC,'company_securities':[bad]}]}).status_code,422)

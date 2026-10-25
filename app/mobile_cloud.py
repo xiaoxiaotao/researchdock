@@ -4,7 +4,7 @@ import hashlib,json,os,secrets,sqlite3,re,tempfile
 from contextlib import contextmanager
 from pathlib import Path
 from fastapi import FastAPI,HTTPException,Request,Query
-from pydantic import BaseModel,Field,ConfigDict
+from pydantic import BaseModel,Field,ConfigDict,model_validator
 from .utils import now_iso
 
 class Asset(BaseModel):
@@ -12,6 +12,18 @@ class Asset(BaseModel):
     id:str=Field(pattern=r'^[a-f0-9]{64}$')
     name:str=Field(max_length=300)
     type:str=Field(pattern=r'^(image|pdf)$')
+
+class CompanySecurity(BaseModel):
+    model_config=ConfigDict(extra='forbid',strict=True)
+    name:str=Field(min_length=1,max_length=200)
+    canonical_name:str=Field(min_length=1,max_length=200)
+    security_id:str=Field(pattern=r'^(sh|sz|bj)[0-9]{6}$|^hk[0-9]{5}$')
+    code:str=Field(pattern=r'^[0-9]{5,6}$')
+    exchange:str=Field(pattern=r'^(sh|sz|bj|hk)$')
+    @model_validator(mode='after')
+    def consistent(self):
+        if self.security_id!=self.exchange+self.code or len(self.code)!=(5 if self.exchange=='hk' else 6):raise ValueError('证券标识不一致')
+        return self
 
 class Document(BaseModel):
     model_config=ConfigDict(extra='forbid',strict=True)
@@ -25,6 +37,7 @@ class Document(BaseModel):
     source_url:str=Field(default='',max_length=2000)
     industries:list[str]=Field(default_factory=list,max_length=30)
     companies:list[str]=Field(default_factory=list,max_length=80)
+    company_securities:list[CompanySecurity]=Field(default_factory=list,max_length=80)
     assets:list[Asset]=Field(default_factory=list,max_length=100)
 
 
@@ -67,6 +80,7 @@ def create_app(data_dir=None,push_token=None,read_token=None):
             validated=[Document.model_validate(d).model_dump() for d in rows]
             if len({d['document_id'] for d in validated})!=len(validated):raise ValueError()
             if any(any(len(s)>200 for s in d['industries']+d['companies']) for d in validated):raise ValueError()
+            if any(any(s['name'] not in d['companies'] for s in d['company_securities']) for d in validated):raise ValueError()
         except Exception:raise HTTPException(422,'同步格式无效；只接受明确的阅读字段')
         changed=0
         with db() as conn:
