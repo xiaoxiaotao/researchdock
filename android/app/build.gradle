@@ -2,6 +2,8 @@ plugins { id 'com.android.application' }
 android {
     namespace 'org.researchdock.mobile'
     compileSdk 35
-    defaultConfig { applicationId 'org.researchdock.mobile'; minSdk 26; targetSdk 35; versionCode 1; versionName '0.2.0-preview' }
+    defaultConfig { applicationId 'org.researchdock.mobile'; minSdk 26; targetSdk 35; versionCode 3; versionName '0.3.0-preview'; testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner' }
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
 }
+
+dependencies { androidTestImplementation 'androidx.test:runner:1.6.2'; androidTestImplementation 'junit:junit:4.13.2' }
