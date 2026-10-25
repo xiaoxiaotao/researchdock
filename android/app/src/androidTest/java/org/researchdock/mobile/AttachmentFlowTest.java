@@ -24,6 +24,7 @@ public class AttachmentFlowTest {
    android.content.pm.ProviderInfo p=c.getPackageManager().resolveContentProvider("org.researchdock.mobile.attachments",0);assertNotNull(p);assertFalse(p.exported);assertTrue(p.grantUriPermissions);
   }finally{f.delete();}
  }
+ @Test public void attachmentNamesAreSearchableWithoutTreatingFormatsAsTickers()throws Exception{JSONObject d=new JSONObject();d.put("title","汇总资料");d.put("attachments",new JSONArray().put(new JSONObject().put("name","示例行业原始表.xlsx")));assertFalse(LibraryViews.isCodeQuery("XLSX"));assertTrue(LibraryViews.matches(d,"原始表","",0,"全部",false,false,0,java.time.LocalDate.now()));assertFalse(LibraryViews.matches(d,"不存在文件","",0,"全部",false,false,0,java.time.LocalDate.now()));}
  @Test public void liveOriginalDeliveryProbe()throws Exception{
   String wanted=InstrumentationRegistry.getArguments().getString("attachment_probe");if(wanted==null)return;
   Instrumentation inst=InstrumentationRegistry.getInstrumentation();MainActivity a=(MainActivity)inst.startActivitySync(new Intent(inst.getTargetContext(),MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
