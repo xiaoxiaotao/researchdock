@@ -38,6 +38,7 @@
 
 - [Android 构建工作流](https://github.com/xiaoxiaotao/researchdock/actions/workflows/android.yml)：产物为 debug 签名预览包，正式分发前需维护稳定发布签名。
 - [安卓客户端说明](android/README.md)：功能、缓存与限制。
+- [0.8.0 阅读性能与图标更新](docs/open-source/mobile-performance-20261025.md)：真机对比、分批排版和媒体加载策略。
 - [独立私有阅读服务](deployment/README.md)：`app.mobile_cloud` 与本机管理后台分开部署，不能直接公开本机 Web。
 - Mac 使用 `python -m app.mobile_sync --watch` 每60秒发布文字变更与已缓存资源；手机前台每30秒先检查游标，有变化再拉取列表。没有新模型请求。
 - Mac 凭据、模型回执和本机路径不在阅读包中；私有同步配置、云数据、APK 与签名密钥均不进入源码分发。
