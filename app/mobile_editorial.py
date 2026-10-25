@@ -24,7 +24,8 @@ def source_health(storage):
     for path in sorted(storage.path('catalog/sources').glob('zsxq_*.json')):
         d=read_json(path) or {};state=d.get('status','unknown')
         if state not in ('queued','running','failed','interrupted','succeeded','partial','idle'):state='unknown'
-        sources.append(dict(name=str(d.get('name') or d.get('group_name') or '知识星球')[:200],status=state,
+        message=str(d.get('message') or '');issue='auth_required' if state=='failed' and any(v in message for v in ('登录','授权','访问权限')) else 'api_unavailable' if state=='failed' and ('api' in message.lower() or '网络' in message) else 'unknown' if state=='failed' else 'none'
+        sources.append(dict(issue=issue,name=str(d.get('name') or d.get('group_name') or '知识星球')[:200],status=state,
                             last_success_at=d.get('last_synced_at') or '',last_attempt_at=polls.get(str(d.get('group_id')),'') or '',unavailable_count=max(0,int(d.get('window_unavailable_count') or 0))))
     minutes=settings.get('poll_minutes',5)
     return dict(reported_at=now_iso(),poll_enabled=bool(settings.get('poll_enabled',False)),

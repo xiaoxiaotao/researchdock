@@ -35,6 +35,7 @@ class SourceState(BaseModel):
     last_success_at:str=Field(default='',max_length=80)
     last_attempt_at:str=Field(default='',max_length=80)
     unavailable_count:int=Field(default=0,ge=0)
+    issue:str=Field(default='none',pattern=r'^(none|auth_required|api_unavailable|unknown)$')
 
 class SourceHealth(BaseModel):
     model_config=ConfigDict(extra='forbid',strict=True)
