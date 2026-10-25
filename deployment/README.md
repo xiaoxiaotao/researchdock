@@ -11,7 +11,7 @@ Current preview: private list, body cache, industry/company filtering; local-onl
 
 ### On-demand originals (0.9)
 
-Deploy the matching cloud and Android versions before restarting the Mac publisher. Source credentials remain on the Mac. Read-token clients can enqueue only attachments already present in a live document manifest; the push token alone can list and complete jobs. The queue is idempotent, bounded to 100 pending requests and processes up to three per publisher cycle. The Mac verifies current revision and archived membership, validates HTTPS source domains, file signatures and size, then streams the original into the private mirror. No transcription, PDF parsing or model requests occur.
+Deploy the matching cloud and Android versions before restarting the Mac publisher. Source credentials remain on the Mac. Read-token clients can enqueue only attachments already present in a live document manifest; the push token alone can list and complete jobs. The queue is idempotent, bounded to 100 pending requests and uses at most two background source-download tasks in watch mode (one-shot commands process up to three). The Mac verifies current revision and archived membership, validates HTTPS source domains, file signatures and size, then streams the original into the private mirror. No transcription, PDF parsing or model requests occur.
 
 Set the reverse proxy body limit to at least 100MB and upstream timeout to 180s; application limits remain 100,000,000 bytes per original. Preserve TLS, request limits, separate tokens and the existing container restrictions. The cloud never receives source authorization or signed download URLs. Missing and failed originals remain listed; failed requests require a user retry. The Mac must be awake and online.
 
