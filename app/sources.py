@@ -149,6 +149,7 @@ def topic_record(topic: dict, group_id: str, group_name: str) -> dict:
         raise SourceError("主题所属星球不匹配")
     parser = ZsxqText()
     parser.feed(topic.get("content") or "")
+    parser.close()  # Flush buffered text, including unterminated entity-like ampersands.
     body = "".join(parser.parts).strip()
     files = topic.get("files") or []
     images = topic.get("images") or []

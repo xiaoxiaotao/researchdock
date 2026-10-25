@@ -79,6 +79,12 @@ class SourceTests(unittest.TestCase):
         self.assertEqual(record['author_name'], '作者')
         self.assertEqual(record['source_url'], f'https://wx.zsxq.com/group/{GROUP}/topic/101')
 
+    def test_plain_text_ampersands_are_flushed_at_end_of_document(self):
+        body = '【研究&A】行业纪要\n收入回升，Q3利润改善&现金流增加'
+        record = topic_record(topic('101', body), GROUP, '调研纪要')
+        self.assertEqual(record['content_text'], body)
+        self.assertNotIn('此主题仅含附件', record['content_text'])
+
     def test_inclusive_pagination_duplicate_and_repeat(self):
         first = self.manager.sync(GROUP, limit=2, max_pages=2)
         self.assertEqual(first['counts']['created'], 3)
