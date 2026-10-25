@@ -41,6 +41,7 @@
 - [0.8.0 阅读性能与图标更新](docs/open-source/mobile-performance-20261025.md)：真机对比、分批排版和媒体加载策略。
 - [0.9.0 完整附件与按需获取](docs/open-source/mobile-attachments.md)：图片、PDF、音频和表格清单及原件。
 - [0.10 原件浏览与离线正文](docs/open-source/mobile-original-browser.md)：文件类型/状态筛选、分页、缓存复用和后台获取。
+- [0.11 每日研究工作台](docs/open-source/mobile-workspace.md)：关键观点、风险提示、关注更新与真实采集状态。
 - [独立私有阅读服务](deployment/README.md)：`app.mobile_cloud` 与本机管理后台分开部署，不能直接公开本机 Web。
 - Mac 使用 `python -m app.mobile_sync --watch` 每60秒发布文字变更与已缓存资源；手机前台每30秒先检查游标，有变化再拉取列表。没有新模型请求。
 - Mac 凭据、模型回执和本机路径不在阅读包中；私有同步配置、云数据、APK 与签名密钥均不进入源码分发。
