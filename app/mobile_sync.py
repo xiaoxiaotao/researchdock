@@ -6,6 +6,7 @@ from .config import load_config
 from .storage import Storage,read_json,atomic_write_json
 from . import index
 from .frontmatter import split_frontmatter
+from .mobile_editorial import presentation,source_health
 from .mobile_attachments import inventory,MAX_BYTES,asset_digest
 
 
@@ -52,7 +53,7 @@ def records(cfg,storage):
                     if digest:body=body.replace(url,'asset:'+digest)
             for path in storage.path('cache/source-images').glob(f"{row['document_id']}-r{row['current_revision']}-*.bin"):add(path,'image','星球原图')
             for path in storage.path(f"cache/document-pdfs/{row['document_id']}").glob(f"r{row['current_revision']}-*.pdf"):add(path,'pdf',row['title']+'.pdf')
-            yield dict(attachments=attachments,_local_assets=local_assets,assets=assets,document_id=row['document_id'],revision=row['current_revision'],title=row['title'],body=body,summary=summary.get('summary',''),published_at=row['published_at'] or '',source_name=row['source_space_name'] or row['source_platform'] or '',source_url=row['source_url'] or '',industries=editorial.get('industries') or summary.get('industries',[]),companies=companies,company_securities=[dict(name=name,canonical_name=matches[name]['name'],security_id=matches[name]['security_id'],code=matches[name]['code'],exchange=matches[name]['exchange']) for name in companies if name in matches and matches[name]['exchange']!='us']+[dict(name=name,canonical_name=r['name'],security_id=r['security_id'],code=r['code'],exchange='us') for name in companies for r in american.get(name,[])])
+            yield dict(**presentation(row,body,attachments,summary),attachments=attachments,_local_assets=local_assets,assets=assets,document_id=row['document_id'],revision=row['current_revision'],title=row['title'],body=body,summary=summary.get('summary',''),published_at=row['published_at'] or '',source_name=row['source_space_name'] or row['source_platform'] or '',source_url=row['source_url'] or '',industries=editorial.get('industries') or summary.get('industries',[]),companies=companies,company_securities=[dict(name=name,canonical_name=matches[name]['name'],security_id=matches[name]['security_id'],code=matches[name]['code'],exchange=matches[name]['exchange']) for name in companies if name in matches and matches[name]['exchange']!='us']+[dict(name=name,canonical_name=r['name'],security_id=r['security_id'],code=r['code'],exchange='us') for name in companies for r in american.get(name,[])])
 
 
 def sync_once(cfg,storage,url,token,transport=None):
@@ -91,6 +92,9 @@ def sync_once(cfg,storage,url,token,transport=None):
             if response.status_code!=200 or response.json().get('deleted')!=len(batch):raise RuntimeError('删除事件未确认，保留旧进度')
             for document_id in batch:hashes.pop(document_id,None)
             atomic_write_json(receipt_path,{'scope':scope,'hashes':hashes,'sent':sent})
+        # Heartbeat is separate from document changes; its timestamp must not create new research.
+        response=client.post(url.rstrip('/')+'/v1/source-health',headers={'Authorization':'Bearer '+token},json=source_health(storage))
+        if response.status_code not in (200,404):raise RuntimeError('采集状态未发布')
     return {'sent':sent,'model_requests':0}
 
 

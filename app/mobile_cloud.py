@@ -28,6 +28,21 @@ class JobResult(BaseModel):
     model_config=ConfigDict(extra='forbid',strict=True)
     status:str=Field(pattern=r'^(ready|failed)$')
 
+class SourceState(BaseModel):
+    model_config=ConfigDict(extra='forbid',strict=True)
+    name:str=Field(min_length=1,max_length=200)
+    status:str=Field(pattern=r'^(queued|running|failed|interrupted|succeeded|partial|idle|unknown)$')
+    last_success_at:str=Field(default='',max_length=80)
+    last_attempt_at:str=Field(default='',max_length=80)
+    unavailable_count:int=Field(default=0,ge=0)
+
+class SourceHealth(BaseModel):
+    model_config=ConfigDict(extra='forbid',strict=True)
+    reported_at:str=Field(max_length=80)
+    poll_enabled:bool
+    poll_minutes:int=Field(ge=5,le=60)
+    sources:list[SourceState]=Field(default_factory=list,max_length=100)
+
 class CompanySecurity(BaseModel):
     model_config=ConfigDict(extra='forbid',strict=True)
     name:str=Field(min_length=1,max_length=200)
@@ -47,6 +62,13 @@ class Document(BaseModel):
     title:str=Field(min_length=1,max_length=500)
     body:str=Field(max_length=300000)
     summary:str=Field(default='',max_length=10000)
+    key_points:list[str]=Field(default_factory=list,max_length=50)
+    risks:list[str]=Field(default_factory=list,max_length=50)
+    analysis_revision:int=Field(default=0,ge=0)
+    first_imported_at:str=Field(default='',max_length=80)
+    body_chars:int=Field(default=0,ge=0,le=300000)
+    content_kind:str=Field(default='note',pattern=r'^(note|brief|attachment_only)$')
+    display_title:str=Field(default='',max_length=500)
     published_at:str=Field(default='',max_length=80)
     source_name:str=Field(default='',max_length=200)
     source_url:str=Field(default='',max_length=2000)
@@ -95,6 +117,7 @@ def create_app(data_dir=None,push_token=None,read_token=None):
             if not isinstance(deleted,list) or len(deleted)>100 or any(not isinstance(x,str) or not re.fullmatch(r'doc_[0-9A-Z]{26}',x) for x in deleted):raise ValueError()
             if set(batch)-{'library_id','documents','deleted_ids'} or not isinstance(library,str) or not 1<=len(library)<=100 or not isinstance(rows,list) or len(rows)>20:raise ValueError()
             validated=[Document.model_validate(d).model_dump() for d in rows]
+            if any(any(len(s)>4000 for s in d['key_points']+d['risks']) or (d['key_points'] or d['risks']) and d['analysis_revision']!=d['revision'] for d in validated):raise ValueError()
             if len({d['document_id'] for d in validated})!=len(validated):raise ValueError()
             if any(any(len(s)>200 for s in d['industries']+d['companies']) for d in validated):raise ValueError()
             if any(any(a['status']=='ready' and not any(x['id']==a['asset_id'] and x['type']==a['type'] for x in d['assets']) for a in d['attachments']) for d in validated):raise ValueError()
@@ -199,13 +222,22 @@ def create_app(data_dir=None,push_token=None,read_token=None):
         with db() as conn:
             conn.execute('UPDATE attachment_jobs SET status=? WHERE job_id=?',(result.status,job_id))
         return {'status':result.status}
+    @app.post('/v1/source-health')
+    def put_source_health(report:SourceHealth,request:Request):
+        authorize(request,True)
+        with db() as conn:
+            conn.execute("INSERT OR REPLACE INTO meta VALUES('source_health',?)",(json.dumps(report.model_dump(),ensure_ascii=False),))
+            conn.execute("INSERT OR REPLACE INTO meta VALUES('health_received_at',?)",(now_iso(),))
+        return {'accepted':True}
     @app.get('/v1/status')
     def status(request:Request):
         authorize(request)
         with db() as conn:
             cursor=conn.execute('SELECT COALESCE(MAX(sequence),0) FROM changes').fetchone()[0]
             last=conn.execute("SELECT value FROM meta WHERE key='last_sync'").fetchone()
-        return {'cursor':cursor,'last_sync':last[0] if last else None}
+            health=conn.execute("SELECT value FROM meta WHERE key='source_health'").fetchone()
+            received=conn.execute("SELECT value FROM meta WHERE key='health_received_at'").fetchone()
+        return {'cursor':cursor,'last_sync':last[0] if last else None,'source_health':json.loads(health[0]) if health else None,'health_received_at':received[0] if received else None}
     @app.get('/v1/documents')
     def documents(request:Request,limit:int=Query(100,ge=1,le=100),offset:int=Query(0,ge=0),since:int=Query(0,ge=0)):
         authorize(request)

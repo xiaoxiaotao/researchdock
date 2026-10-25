@@ -13,6 +13,7 @@ final class LibraryViews {
   if(!source.isEmpty()&&!source.equals(d.optString("source_name")))return false;
   if(days>0){try{LocalDate date=LocalDate.parse(day(d));if(date.isBefore(today.minusDays(days-1))||date.isAfter(today))return false;}catch(Exception e){return false;}}
   if(mode.equals("未读")&&opened||mode.equals("关注")&&!followed||mode.equals("续读")&&(progress<=0.02f||progress>=0.98f))return false;
+  if(mode.equals("今日收录")&&!ResearchHome.importedToday(d,today))return false;
   String normalized=query.trim().toLowerCase(Locale.ROOT);
   if(isCodeQuery(query.trim())){org.json.JSONArray refs=d.optJSONArray("company_securities");if(refs!=null)for(int i=0;i<refs.length();i++){JSONObject r=refs.optJSONObject(i);if(r!=null&&(normalized.equals(r.optString("code").toLowerCase(Locale.ROOT))||normalized.equals(r.optString("code").toLowerCase(Locale.ROOT)+"."+r.optString("exchange").toLowerCase(Locale.ROOT))))return true;}return false;}
   StringBuilder attachmentNames=new StringBuilder();org.json.JSONArray attachments=d.optJSONArray("attachments");if(attachments!=null)for(int i=0;i<attachments.length();i++)attachmentNames.append(" ").append(attachments.optJSONObject(i).optString("name"));
