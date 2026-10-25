@@ -22,13 +22,11 @@ jobs:
           PREVIEW_KEY: ${{ secrets.ANDROID_PREVIEW_KEY }}
         run: |
           if [ -n "$PREVIEW_KEY" ]; then
-            mkdir -p ~/.android
-            printf %s "$PREVIEW_KEY" | base64 --decode > ~/.android/debug.keystore
-            chmod 600 ~/.android/debug.keystore
+            printf %s "$PREVIEW_KEY" | base64 --decode > "$RUNNER_TEMP/researchdock-preview.keystore"
+            chmod 600 "$RUNNER_TEMP/researchdock-preview.keystore"
+            echo "RESEARCHDOCK_PREVIEW_STORE=$RUNNER_TEMP/researchdock-preview.keystore" >> "$GITHUB_ENV"
           fi
       - run: gradle -p android :app:assembleDebug :app:assembleDebugAndroidTest :app:lintDebug --no-daemon --no-build-cache
-        env:
-          RESEARCHDOCK_PREVIEW_STORE: /home/runner/.android/debug.keystore
       - uses: actions/upload-artifact@v4
         with:
           name: researchdock-android-preview
