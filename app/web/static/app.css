@@ -200,3 +200,5 @@ body.reader-focus .side,body.reader-focus .reader-grid>div{display:none}body.rea
 @media(max-width:700px){.reader-bar{gap:5px}.reader-bar .btn{padding:7px 9px}.reader-toc{margin-left:0}}
 article.doc .body h2{font-size:1.3em;color:#21694f;line-height:1.5;border-bottom:1px solid var(--line);padding-bottom:.35em}
 article.doc .body h3{font-size:1.12em;color:#355c70;line-height:1.55}
+article.doc>h1{font-size:30px;line-height:1.5;letter-spacing:-.02em;color:#203e35}
+article.doc .body h2{font-size:1.2em}
