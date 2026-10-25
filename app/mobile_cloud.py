@@ -17,12 +17,12 @@ class CompanySecurity(BaseModel):
     model_config=ConfigDict(extra='forbid',strict=True)
     name:str=Field(min_length=1,max_length=200)
     canonical_name:str=Field(min_length=1,max_length=200)
-    security_id:str=Field(pattern=r'^(sh|sz|bj)[0-9]{6}$|^hk[0-9]{5}$')
-    code:str=Field(pattern=r'^[0-9]{5,6}$')
-    exchange:str=Field(pattern=r'^(sh|sz|bj|hk)$')
+    security_id:str=Field(pattern=r'^(sh|sz|bj)[0-9]{6}$|^hk[0-9]{5}$|^us[A-Z]{1,5}(?:[.][A-Z])?$')
+    code:str=Field(pattern=r'^(?:[0-9]{5,6}|[A-Z]{1,5}(?:[.][A-Z])?)$')
+    exchange:str=Field(pattern=r'^(sh|sz|bj|hk|us)$')
     @model_validator(mode='after')
     def consistent(self):
-        if self.security_id!=self.exchange+self.code or len(self.code)!=(5 if self.exchange=='hk' else 6):raise ValueError('证券标识不一致')
+        if self.security_id!=self.exchange+self.code or (self.exchange!='us' and (not self.code.isdigit() or len(self.code)!=(5 if self.exchange=='hk' else 6))) or (self.exchange=='us' and not re.fullmatch(r'[A-Z]{1,5}(?:[.][A-Z])?',self.code)):raise ValueError('证券标识不一致')
         return self
 
 class Document(BaseModel):

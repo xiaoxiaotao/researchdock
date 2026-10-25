@@ -17,7 +17,10 @@ def records(cfg,storage):
             if summary.get('revision')==row['current_revision']:
                 names.update(s['name'] for s in summary.get('stocks',[]) if isinstance(s,dict) and isinstance(s.get('name'),str) and s['name'] in row['body'] and s.get('evidence') and s['evidence'] in row['body'])
         from .securities import Securities
-        matches=Securities(storage).matches([{'stock_id':name,'name':name} for name in sorted(names) if name])
+        catalog=Securities(storage)
+        matches=catalog.matches([{'stock_id':name,'name':name} for name in sorted(names) if name])
+        from .us_securities import matches as us_matches
+        american=us_matches(catalog,names)
         for row in rows:
             summary=summaries[row['document_id']]
             if summary.get('revision')!=row['current_revision']:summary={}
@@ -40,7 +43,7 @@ def records(cfg,storage):
                     if digest:body=body.replace(url,'asset:'+digest)
             for path in storage.path('cache/source-images').glob(f"{row['document_id']}-r{row['current_revision']}-*.bin"):add(path,'image','星球原图')
             for path in storage.path(f"cache/document-pdfs/{row['document_id']}").glob(f"r{row['current_revision']}-*.pdf"):add(path,'pdf',row['title']+'.pdf')
-            yield dict(_local_assets=local_assets,assets=assets,document_id=row['document_id'],revision=row['current_revision'],title=row['title'],body=body,summary=summary.get('summary',''),published_at=row['published_at'] or '',source_name=row['source_space_name'] or row['source_platform'] or '',source_url=row['source_url'] or '',industries=editorial.get('industries') or summary.get('industries',[]),companies=companies,company_securities=[dict(name=name,canonical_name=matches[name]['name'],security_id=matches[name]['security_id'],code=matches[name]['code'],exchange=matches[name]['exchange']) for name in companies if name in matches])
+            yield dict(_local_assets=local_assets,assets=assets,document_id=row['document_id'],revision=row['current_revision'],title=row['title'],body=body,summary=summary.get('summary',''),published_at=row['published_at'] or '',source_name=row['source_space_name'] or row['source_platform'] or '',source_url=row['source_url'] or '',industries=editorial.get('industries') or summary.get('industries',[]),companies=companies,company_securities=[dict(name=name,canonical_name=matches[name]['name'],security_id=matches[name]['security_id'],code=matches[name]['code'],exchange=matches[name]['exchange']) for name in companies if name in matches and matches[name]['exchange']!='us']+[dict(name=name,canonical_name=r['name'],security_id=r['security_id'],code=r['code'],exchange='us') for name in companies for r in american.get(name,[])])
 
 
 def sync_once(cfg,storage,url,token,transport=None):

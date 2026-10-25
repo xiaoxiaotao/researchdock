@@ -20,6 +20,8 @@ def code_hint(value):
     if match:return match[1].zfill(5),'hk'
     match=re.fullmatch(r'(\d{6})(?:[.](SZ|SH|BJ|CH))?',value)
     if match:return match[1],(match[2].lower() if match[2] and match[2]!='CH' else None)
+    match=re.fullmatch(r'([A-Z]{1,5}(?:[.][A-Z])?)(?:[.]US)?',value)
+    if match:return match[1],'us'
     return None,None
 
 def hk_aliases(name):
@@ -69,9 +71,9 @@ class Securities:
         if not valid:raise ValueError('未取得有效A股证券目录')
         stamp=now_iso()
         with self.connect() as c:
-            old=c.execute("SELECT count(*) FROM securities WHERE in_directory=1 AND exchange!='hk'").fetchone()[0]
+            old=c.execute("SELECT count(*) FROM securities WHERE in_directory=1 AND exchange IN ('sh','sz','bj')").fetchone()[0]
             if old and len(valid)<old*.8:raise ValueError('证券目录数量异常下降，保留原库')
-            c.execute("UPDATE securities SET in_directory=0 WHERE exchange!='hk'")
+            c.execute("UPDATE securities SET in_directory=0 WHERE exchange IN ('sh','sz','bj')")
             for key,row in valid.items():
                 c.execute('''INSERT INTO securities VALUES (?,?,?,?,?,?,?,?,1) ON CONFLICT(security_id) DO UPDATE SET
                     name=excluded.name,pinyin=excluded.pinyin,org_id=excluded.org_id,source=excluded.source,fetched_at=excluded.fetched_at,in_directory=1''',(key,row['code'],row['exchange'],row['name'],row['pinyin'],row['org_id'],SOURCE,stamp))
@@ -113,7 +115,7 @@ class Securities:
         except httpx.HTTPError:raise ValueError('证券目录数据源暂不可用，保留原库') from None
     def stats(self):
         with self.connect() as c:
-            return {'count':c.execute('SELECT count(*) FROM securities WHERE in_directory=1').fetchone()[0], 'updated_at':c.execute('SELECT max(updated_at) FROM security_syncs').fetchone()[0],'source':SOURCE,'hk_source':HK_SOURCE,'hk_count':c.execute("SELECT count(*) FROM securities WHERE in_directory=1 AND exchange='hk'").fetchone()[0]}
+            return {'count':c.execute('SELECT count(*) FROM securities WHERE in_directory=1').fetchone()[0], 'updated_at':c.execute('SELECT max(updated_at) FROM security_syncs').fetchone()[0],'source':SOURCE,'hk_source':HK_SOURCE,'us_count':c.execute("SELECT count(*) FROM securities WHERE in_directory=1 AND exchange='us'").fetchone()[0],'hk_count':c.execute("SELECT count(*) FROM securities WHERE in_directory=1 AND exchange='hk'").fetchone()[0]}
     def search(self,q='',limit=60):
         with self.connect() as c:
             if not q:return [dict(r) for r in c.execute('SELECT * FROM securities WHERE in_directory=1 ORDER BY exchange,code LIMIT ?',(limit,))]

@@ -50,3 +50,13 @@ class MobileCloudTests(unittest.TestCase):
    self.assertEqual(client.get('/v1/documents/'+DOC['document_id'],headers=read).json()['company_securities'],[ref])
    for bad in [{**ref,'code':'700'},{**ref,'security_id':'sz000001'},{**ref,'name':'未关联公司'}]:
     self.assertEqual(client.post('/v1/sync',headers=push,json={'library_id':'demo','documents':[{**DOC,'company_securities':[bad]}]}).status_code,422)
+
+ def test_us_identity_and_share_class_validation(self):
+  with tempfile.TemporaryDirectory() as tmp:
+   client=TestClient(create_app(tmp,P,R));push={'Authorization':'Bearer '+P};read={'Authorization':'Bearer '+R}
+   for code in ['NVDA','BRK.B']:
+    ref={'name':'示例公司','canonical_name':'Example','security_id':'us'+code,'code':code,'exchange':'us'}
+    self.assertEqual(client.post('/v1/sync',headers=push,json={'library_id':'demo','documents':[{**DOC,'company_securities':[ref]}]}).status_code,200)
+    self.assertEqual(client.get('/v1/documents',headers=read).json()['documents'][0]['company_securities'][0]['code'],code)
+   ref={'name':'示例公司','canonical_name':'Example','security_id':'us12345','code':'12345','exchange':'us'}
+   self.assertEqual(client.post('/v1/sync',headers=push,json={'library_id':'demo','documents':[{**DOC,'company_securities':[ref]}]}).status_code,422)
