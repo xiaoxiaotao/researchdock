@@ -39,3 +39,10 @@
 *.pdf
 
 !/RELEASE_MANIFEST.txt
+
+!/android/
+android/**/build/
+android/.gradle/
+android/local.properties
+*.jks
+*.keystore

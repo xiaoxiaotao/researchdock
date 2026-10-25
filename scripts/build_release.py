@@ -11,8 +11,8 @@ from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[1]
 FILES={'.gitignore','.gitattributes','README.md','README.en.md','LICENSE','SECURITY.md','CONTRIBUTING.md','CHANGELOG.md','THIRD_PARTY_NOTICES.md','requirements.txt','requirements-dev.txt','config.example.yaml','run.sh','tools/background_service.py'}
-TREES=('app','tests','scripts','docs/open-source','examples','.github')
-SUFFIXES={'.py','.md','.json','.jsonl','.yaml','.yml','.txt','.html','.css','.js','.svg'}
+TREES=('app','tests','scripts','docs/open-source','examples','.github','android')
+SUFFIXES={'.py','.md','.json','.jsonl','.yaml','.yml','.txt','.html','.css','.js','.svg','.java','.gradle','.properties','.xml'}
 PATTERNS={
  'api-key':re.compile(r'\bsk-[A-Za-z0-9_-]{16,}'),
  'private-home':re.compile(r'(?:/Users/|/home/)[A-Za-z0-9_.-]+/'),
@@ -32,7 +32,8 @@ def selected(root=ROOT):
         if base.is_symlink():raise ValueError('Symlink tree: '+tree)
         for path in sorted(base.rglob('*')):
             relative=path.relative_to(root)
-            if any(part=='__pycache__' or part=='.DS_Store' for part in relative.parts):continue
+            if any(part in {'__pycache__','.DS_Store','build','.gradle'} for part in relative.parts):continue
+            if path.name=='local.properties':continue
             if path.is_symlink():raise ValueError('Symlink in release tree: '+str(relative))
             if not path.is_file():continue
             if path.suffix not in SUFFIXES:raise ValueError('Unreviewed file type: '+str(relative))
