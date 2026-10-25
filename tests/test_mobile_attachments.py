@@ -65,7 +65,9 @@ class AttachmentTests(unittest.TestCase):
    c.post('/v1/sync',headers=push,json={'library_id':'test','documents':[{**d,'revision':2,'body':'新版本'}]})
    self.assertEqual(c.get('/v1/attachment-jobs',headers=push).json()['jobs'],[])
    import sqlite3
-   with sqlite3.connect(Path(tmp)/'reader.sqlite3') as conn:self.assertEqual(conn.execute('select count(*) from attachment_jobs').fetchone()[0],0)
+   conn=sqlite3.connect(Path(tmp)/'reader.sqlite3')
+   try:self.assertEqual(conn.execute('select count(*) from attachment_jobs').fetchone()[0],0)
+   finally:conn.close()
  def test_download_domain_and_format_limits(self):
   for url in ['http://files.zsxq.com/a','https://zsxq.com.evil.test/a','https://127.0.0.1/a','https://user:pass@files.zsxq.com/a','https://files.zsxq.com:8000/a']:
    with self.assertRaises(ValueError):safe_download_url(url)
