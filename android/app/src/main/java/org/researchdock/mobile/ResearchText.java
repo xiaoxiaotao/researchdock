@@ -34,6 +34,7 @@ final class ResearchText {
   // Colour metric names only. Do not label numbers as good/bad or generate new claims.
   Matcher metrics=Pattern.compile("营业收入|营收|净利润|毛利率|净利率|经营现金流|自由现金流|现金流|每股收益|ROE|EBITDA").matcher(out);
   while(metrics.find()){out.setSpan(new ForegroundColorSpan(BLUE),metrics.start(),metrics.end(),Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);out.setSpan(new StyleSpan(Typeface.BOLD),metrics.start(),metrics.end(),Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);}
+  Matcher amounts=Pattern.compile("(?<![A-Za-z0-9])[-+−]?\\d+(?:[.,]\\d+)*(?:%|％|亿元|万元|亿|万|元|个百分点|倍)").matcher(out);while(amounts.find())out.setSpan(new ForegroundColorSpan(BLUE),amounts.start(),amounts.end(),Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
   return out;
  }
  private void paragraph(LinearLayout parent,String text){if(!text.isEmpty())parent.addView(label(inline(text),size,INK));}
