@@ -46,3 +46,6 @@ android/.gradle/
 android/local.properties
 *.jks
 *.keystore
+
+!/deployment/
+reader-data/

@@ -32,9 +32,18 @@
 - **不伪造缺失**：接口失败、授权不足、缺少正文或未知日期会明确显示。
 - **源码与资料分开**：开源的是程序，用户自己的数据和第三方内容不随源码发布。
 
-## 手机端规划与交互原型
+## Android 预览版与私有云同步
 
-启动后可打开 [手机阅读原型](http://127.0.0.1:8001/mobile-preview)，体验动态、行业、公司时间线与原件列表。全部是合成数据，尚未实现 APK、云端同步和真实离线阅读；不连接外部服务器，也不调用模型。参见 [移动端设计草案](docs/open-source/mobile-design.md)。
+已加入原生 Android 客户端源码与 GitHub Actions APK 构建，支持私有 HTTPS 连接、动态 / 行业 / 公司 / 收藏、正文缓存、已同步图片及 PDF 分页阅读。最低 Android 8.0。APK 不预置服务器地址、阅读凭据或模型密钥，配置自己的阅读服务后使用。
+
+- [Android 构建工作流](https://github.com/xiaoxiaotao/researchdock/actions/workflows/android.yml)：产物为 debug 签名预览包，正式分发前需维护稳定发布签名。
+- [安卓客户端说明](android/README.md)：功能、缓存与限制。
+- [独立私有阅读服务](deployment/README.md)：`app.mobile_cloud` 与本机管理后台分开部署，不能直接公开本机 Web。
+- Mac 使用 `python -m app.mobile_sync --watch` 每60秒发布文字变更与已缓存资源；手机前台每30秒先检查游标，有变化再拉取列表。没有新模型请求。
+- Mac 凭据、模型回执和本机路径不在阅读包中；私有同步配置、云数据、APK 与签名密钥均不进入源码分发。
+- 已读 / 收藏目前只保存在手机；后台推送、跨设备状态合并、未下载原件的远程取回尚未实现。已缓存正文可离线读；未打开正文首次阅读需联网。
+
+最初的 [合成数据交互原型](http://127.0.0.1:8001/mobile-preview) 继续保留供产品设计评审，它与实际 APK 是两个独立入口。同步设计草案见 [移动端设计](docs/open-source/mobile-design.md)。
 
 ## 环境要求
 
