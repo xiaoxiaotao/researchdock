@@ -48,4 +48,4 @@ class MobileSyncTests(unittest.TestCase):
     record=next(records(cfg,storage))
    refs={s['name']:s for s in record['company_securities']}
    self.assertEqual(refs['合成沪股']['security_id'],'sh600001');self.assertEqual(refs['合成港股']['code'],'00123')
-   self.assertNotIn('同名公司',refs);self.assertNotIn('未上市企业',refs);self.assertIn('未上市企业',record['companies']);self.assertEqual(record['body'],body)
+   self.assertNotIn('同名公司',refs);self.assertNotIn('未上市企业',refs);self.assertIn('未上市企业',record['companies']);self.assertEqual(record['body'],body+'\n')
