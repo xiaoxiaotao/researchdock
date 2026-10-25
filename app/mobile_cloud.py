@@ -172,6 +172,19 @@ def create_app(data_dir=None,push_token=None,read_token=None):
             conn.execute("INSERT OR REPLACE INTO attachment_jobs VALUES(?,?,?,?,'queued')",(key,document_id,d['revision'],attachment_id))
         return {'status':'queued'}
 
+    @app.get('/v1/documents/{document_id}/attachments/{attachment_id}/preparation')
+    def attachment_preparation(document_id:str,attachment_id:str,request:Request):
+        authorize(request)
+        with db() as conn:
+            row=conn.execute('SELECT payload FROM documents WHERE id=?',(document_id,)).fetchone()
+            if not row:raise HTTPException(404,'资料不存在')
+            d=json.loads(row['payload']);a=next((a for a in d.get('attachments',[]) if a['id']==attachment_id),None)
+            if not a:raise HTTPException(404,'此资料没有该附件')
+            if a['status']=='ready':return {'status':'ready'}
+            key=hashlib.sha256(f"{document_id}:{d['revision']}:{attachment_id}".encode()).hexdigest()
+            job=conn.execute('SELECT status FROM attachment_jobs WHERE job_id=?',(key,)).fetchone()
+        return {'status':job[0] if job else a['status']}
+
     @app.get('/v1/attachment-jobs')
     def attachment_jobs(request:Request):
         authorize(request,True)

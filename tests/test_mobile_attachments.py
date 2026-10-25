@@ -30,10 +30,11 @@ class AttachmentTests(unittest.TestCase):
    self.assertEqual(c.post('/v1/sync',headers=push,json={'library_id':'test','documents':[doc]}).status_code,200)
    route=f'/v1/documents/{ID}/attachments/{KEY}/prepare'
    self.assertEqual(c.post(route).status_code,401);self.assertEqual(c.post(route,headers=read).json()['status'],'queued');self.assertEqual(c.post(route,headers=read).json()['status'],'queued')
+   state=route.replace('/prepare','/preparation');self.assertEqual(c.get(state).status_code,401);self.assertEqual(c.get(state,headers=read).json()['status'],'queued')
    self.assertEqual(c.get('/v1/attachment-jobs',headers=read).status_code,401)
    jobs=c.get('/v1/attachment-jobs',headers=push).json()['jobs'];self.assertEqual(len(jobs),1)
    self.assertEqual(c.post('/v1/attachment-jobs/'+jobs[0]['job_id'],headers=read,json={'status':'ready'}).status_code,401)
-   c.post('/v1/attachment-jobs/'+jobs[0]['job_id'],headers=push,json={'status':'failed'});self.assertEqual(c.get('/v1/attachment-jobs',headers=push).json()['jobs'],[])
+   c.post('/v1/attachment-jobs/'+jobs[0]['job_id'],headers=push,json={'status':'failed'});self.assertEqual(c.get(state,headers=read).json()['status'],'failed');self.assertEqual(c.get('/v1/attachment-jobs',headers=push).json()['jobs'],[])
    self.assertEqual(c.post(route,headers=read).json()['status'],'queued')
    self.assertEqual(c.post(route.replace(KEY,'b'*64),headers=read).status_code,404)
    for data,typ,name in [(b'ID3 synthetic audio','audio','合成.mp3'),(b'PK\x03\x04 synthetic workbook','file','合成.xlsx')]:
