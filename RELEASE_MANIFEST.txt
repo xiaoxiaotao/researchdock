@@ -114,6 +114,7 @@ deployment/Dockerfile
 deployment/README.md
 docs/open-source/architecture.md
 docs/open-source/mobile-design.md
+docs/open-source/mobile-interactions.md
 docs/open-source/product-review-20261025.md
 docs/open-source/releasing.md
 docs/open-source/sources.md
