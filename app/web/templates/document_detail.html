@@ -3,7 +3,7 @@
 {% block content %}
 
 <div style="margin-bottom:14px">
-  <a class="hint" href="/documents">← 返回资料库</a> <a class="btn" href="/documents/{{ doc.document_id }}/export.pdf?revision={{ revision_row.revision }}">导出当前版本 PDF</a>
+  <a class="hint" href="/documents" data-reader-back>← 返回列表</a> <a class="btn" href="/documents/{{ doc.document_id }}/export.pdf?revision={{ revision_row.revision }}">导出当前版本 PDF</a>
 </div>
 
 {% if is_old %}
@@ -13,8 +13,8 @@
 </div>
 {% endif %}
 
-<div class="grid2" style="grid-template-columns:minmax(0, 1fr) minmax(230px, .55fr)">
-  <article class="doc">
+<div class="grid2 reader-grid" style="grid-template-columns:minmax(0, 1fr) minmax(230px, .55fr)">
+  <article class="doc" data-reader-document="{{ doc.document_id }}" data-reader-revision="{{ revision_row.revision }}">
     <h1>{{ doc.title }}</h1>
     <div class="m" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:12.5px;color:var(--muted)">
       <span class="badge type">{{ doc.content_type|type_label }}</span>
@@ -136,4 +136,5 @@ const captureEvidence=document.getElementById('capture-evidence');if(captureEvid
 const evidenceForm=document.getElementById('evidence-form');if(evidenceForm)evidenceForm.onsubmit=async e=>{e.preventDefault();const status=document.getElementById('evidence-status');const button=evidenceForm.querySelector('button[type=submit]');button.disabled=true;try{const r=await fetch('/api/v1/documents/{{ doc.document_id }}/evidence',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({revision:{{ revision_row.revision }},quote:document.getElementById('evidence-quote').value,topic:document.getElementById('evidence-topic').value,company_id:document.getElementById('evidence-company').value,note:document.getElementById('evidence-note').value})});const v=await r.json();if(!r.ok)throw Error(v.detail||'保存失败');status.replaceChildren(document.createTextNode(v.created?'摘录已保存。':v.hidden?'此摘录已隐藏，可到证据库恢复。':'此摘录已存在。'));const link=document.createElement('a');link.href=v.url;link.textContent=' 查看原文证据定位 →';status.append(link);}catch(e){status.textContent=e.message;}finally{button.disabled=false;}};
 </script>
 {% if not is_old %}<script src="/static/document.js" defer></script>{% endif %}
+<script src="/static/reader.js" defer></script>
 {% endblock %}

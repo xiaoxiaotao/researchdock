@@ -190,3 +190,11 @@ article.doc .body { overflow-wrap:anywhere; }
 .document-export-row > .item {flex:1;min-width:0;border-bottom:0;}
 .document-export {flex-shrink:0;white-space:nowrap;}
 @media(max-width:640px){.document-export-row{flex-wrap:wrap;padding-bottom:12px}.document-export-row > .item{flex-basis:100%}.document-export{margin-left:12px}}
+
+/* Long-form reading tools: local preferences, no model request. */
+.reader-bar{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 12px;background:var(--bg,#f7f8f5);border:1px solid var(--line);border-radius:12px;margin-bottom:14px}
+.reader-toc{margin-left:auto;position:relative;max-width:100%}.reader-toc summary{cursor:pointer;color:var(--accent,#21694f)}
+.reader-toc>div{position:absolute;right:0;top:30px;width:min(340px,75vw);max-height:55vh;overflow:auto;background:var(--card,#fff);border:1px solid var(--line);border-radius:10px;padding:12px;box-shadow:0 8px 24px #0001}
+.reader-toc a{display:block;padding:7px 4px;overflow-wrap:anywhere}.doc h2,.doc h3{scroll-margin-top:100px}
+body.reader-focus .side,body.reader-focus .reader-grid>div{display:none}body.reader-focus .shell{display:block}body.reader-focus .main{max-width:960px;margin:auto}body.reader-focus .reader-grid{grid-template-columns:minmax(0,1fr)!important}
+@media(max-width:700px){.reader-bar{gap:5px}.reader-bar .btn{padding:7px 9px}.reader-toc{margin-left:0}}

@@ -1,7 +1,7 @@
 """Read-only processing inventory; source files never imply parsed content."""
 from collections import Counter
 from . import index
-from .frontmatter import split_frontmatter
+from .revision_cache import revision_content
 from .storage import read_json
 
 
@@ -19,7 +19,7 @@ def inventory(pipeline, research=None):
         manifest=pipeline.storage.read_manifest(row['document_id']) or {}
         rev=next((r for r in manifest.get('revisions',[]) if r['revision']==row['current_revision']),None)
         if not rev: continue
-        meta,body=split_frontmatter(pipeline.storage.read_revision_text(rev['archive_path']))
+        meta,body=revision_content(pipeline.storage, rev['archive_path'])
         files=meta.get('source_attachments') or []
         summary=read_json(pipeline.storage.path(f"derived/summaries/{row['document_id']}.json")) or {}
         ready=summary.get('revision')==row['current_revision'] and (not model or summary.get('model')==model)
