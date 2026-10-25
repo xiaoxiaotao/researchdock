@@ -13,8 +13,12 @@ SECURITY.md
 THIRD_PARTY_NOTICES.md
 android/README.md
 android/app/build.gradle
+android/app/src/androidTest/java/org/researchdock/mobile/LibraryViewsTest.java
+android/app/src/androidTest/java/org/researchdock/mobile/ResearchTextTest.java
 android/app/src/main/AndroidManifest.xml
+android/app/src/main/java/org/researchdock/mobile/LibraryViews.java
 android/app/src/main/java/org/researchdock/mobile/MainActivity.java
+android/app/src/main/java/org/researchdock/mobile/ResearchText.java
 android/build.gradle
 android/gradle.properties
 android/settings.gradle
@@ -110,6 +114,7 @@ deployment/Dockerfile
 deployment/README.md
 docs/open-source/architecture.md
 docs/open-source/mobile-design.md
+docs/open-source/product-review-20261025.md
 docs/open-source/releasing.md
 docs/open-source/sources.md
 examples/research-notes.jsonl
