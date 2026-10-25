@@ -224,8 +224,15 @@ def create_app(data_dir=None,push_token=None,read_token=None):
             conn.execute('UPDATE attachment_jobs SET status=? WHERE job_id=?',(result.status,job_id))
         return {'status':result.status}
     @app.post('/v1/source-health')
-    def put_source_health(report:SourceHealth,request:Request):
+    async def put_source_health(request:Request):
         authorize(request,True)
+        parts=[];size=0
+        async for chunk in request.stream():
+            size+=len(chunk)
+            if size>128000:raise HTTPException(413,'状态报告过大')
+            parts.append(chunk)
+        try:report=SourceHealth.model_validate(json.loads(b''.join(parts)))
+        except Exception:raise HTTPException(422,'状态报告格式无效')
         with db() as conn:
             conn.execute("INSERT OR REPLACE INTO meta VALUES('source_health',?)",(json.dumps(report.model_dump(),ensure_ascii=False),))
             conn.execute("INSERT OR REPLACE INTO meta VALUES('health_received_at',?)",(now_iso(),))

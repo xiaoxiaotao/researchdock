@@ -40,6 +40,8 @@ class WorkspaceTests(unittest.TestCase):
    self.assertEqual(c.post('/v1/source-health',headers=read,json=report).status_code,401);self.assertEqual(c.post('/v1/source-health',headers=push,json=report).status_code,200)
    state=c.get('/v1/status',headers=read).json();self.assertEqual(state['cursor'],0);self.assertEqual(state['source_health']['sources'][0]['status'],'failed');self.assertTrue(state['health_received_at'])
    self.assertEqual(c.post('/v1/source-health',headers=push,json={**report,'api_key':'never'}).status_code,422)
+   self.assertEqual(c.post('/v1/source-health',headers=push,json={**report,'padding':'x'*128000}).status_code,413)
+   self.assertEqual(c.post('/v1/source-health',content=b'not-json').status_code,401)
    doc=dict(document_id='doc_'+'A'*26,revision=1,title='合成',body='原文',key_points=['观点'],risks=['风险'],analysis_revision=2)
    self.assertEqual(c.post('/v1/sync',headers=push,json={'library_id':'test','documents':[doc]}).status_code,422)
  def test_unchanged_documents_still_publish_source_failure_without_advancing_cursor(self):
