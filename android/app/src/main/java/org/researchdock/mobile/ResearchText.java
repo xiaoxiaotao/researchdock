@@ -34,6 +34,7 @@ final class ResearchText {
  ResearchText(Context context,int size,List<TextView> headings,Images images){this(context,size,images);this.headings=headings;}
  private int dp(int n){return Math.round(n*context.getResources().getDisplayMetrics().density);}
  private GradientDrawable background(int color,int border){GradientDrawable g=new GradientDrawable();g.setColor(color);g.setCornerRadius(dp(10));if(border!=0)g.setStroke(dp(1),border);return g;}
+ @android.annotation.SuppressLint("WrongConstant") // Layout constants remain available on Android 8; LineBreaker starts at API 29.
  private TextView label(CharSequence value,int font,int color){TextView v=new TextView(context);v.setText(value);v.setTextSize(font);v.setTextColor(color);v.setLinkTextColor(BLUE);v.setBreakStrategy(android.text.Layout.BREAK_STRATEGY_SIMPLE);v.setHyphenationFrequency(android.text.Layout.HYPHENATION_FREQUENCY_NONE);v.setTextIsSelectable(true);v.setLineSpacing(dp(5),1.12f);v.setPadding(0,dp(7),0,dp(7));if(value instanceof Spanned && ((Spanned)value).getSpans(0,value.length(),URLSpan.class).length>0)v.setMovementMethod(LinkMovementMethod.getInstance());return v;}
  private void span(SpannableStringBuilder b,Object span,int start){if(b.length()>start)b.setSpan(span,start,b.length(),Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);}
  CharSequence inline(String source){
