@@ -6,12 +6,27 @@ from pathlib import Path
 from fastapi import FastAPI,HTTPException,Request,Query
 from pydantic import BaseModel,Field,ConfigDict,model_validator
 from .utils import now_iso
+from .mobile_attachments import media_type,MAX_BYTES
 
 class Asset(BaseModel):
     model_config=ConfigDict(extra='forbid',strict=True)
     id:str=Field(pattern=r'^[a-f0-9]{64}$')
     name:str=Field(max_length=300)
-    type:str=Field(pattern=r'^(image|pdf)$')
+    type:str=Field(pattern=r'^(image|pdf|audio|file)$')
+
+class Attachment(BaseModel):
+    model_config=ConfigDict(extra='forbid',strict=True)
+    id:str=Field(pattern=r'^[a-f0-9]{64}$')
+    name:str=Field(min_length=1,max_length=300)
+    type:str=Field(pattern=r'^(image|pdf|audio|file)$')
+    size:int=Field(ge=0)
+    status:str=Field(pattern=r'^(missing|ready|failed|unavailable)$')
+    asset_id:str=Field(default='',pattern=r'^$|^[a-f0-9]{64}$')
+    message:str=Field(default='',max_length=200)
+
+class JobResult(BaseModel):
+    model_config=ConfigDict(extra='forbid',strict=True)
+    status:str=Field(pattern=r'^(ready|failed)$')
 
 class CompanySecurity(BaseModel):
     model_config=ConfigDict(extra='forbid',strict=True)
@@ -38,7 +53,8 @@ class Document(BaseModel):
     industries:list[str]=Field(default_factory=list,max_length=30)
     companies:list[str]=Field(default_factory=list,max_length=80)
     company_securities:list[CompanySecurity]=Field(default_factory=list,max_length=80)
-    assets:list[Asset]=Field(default_factory=list,max_length=100)
+    assets:list[Asset]=Field(default_factory=list,max_length=200)
+    attachments:list[Attachment]=Field(default_factory=list,max_length=200)
 
 
 def create_app(data_dir=None,push_token=None,read_token=None):
@@ -53,6 +69,7 @@ def create_app(data_dir=None,push_token=None,read_token=None):
             conn.executescript('''CREATE TABLE IF NOT EXISTS documents(id TEXT PRIMARY KEY,revision INTEGER,payload TEXT,digest TEXT,sequence INTEGER);
               CREATE TABLE IF NOT EXISTS revisions(id TEXT,revision INTEGER,body_hash TEXT,PRIMARY KEY(id,revision));
               CREATE TABLE IF NOT EXISTS meta(key TEXT PRIMARY KEY,value TEXT);
+              CREATE TABLE IF NOT EXISTS attachment_jobs(job_id TEXT PRIMARY KEY,document_id TEXT,revision INTEGER,attachment_id TEXT,status TEXT);
               CREATE TABLE IF NOT EXISTS changes(sequence INTEGER PRIMARY KEY AUTOINCREMENT,document_id TEXT);
             ''')
             with conn:yield conn
@@ -80,6 +97,7 @@ def create_app(data_dir=None,push_token=None,read_token=None):
             validated=[Document.model_validate(d).model_dump() for d in rows]
             if len({d['document_id'] for d in validated})!=len(validated):raise ValueError()
             if any(any(len(s)>200 for s in d['industries']+d['companies']) for d in validated):raise ValueError()
+            if any(any(a['status']=='ready' and not any(x['id']==a['asset_id'] and x['type']==a['type'] for x in d['assets']) for a in d['attachments']) for d in validated):raise ValueError()
             if any(any(s['name'] not in d['companies'] for s in d['company_securities']) for d in validated):raise ValueError()
         except Exception:raise HTTPException(422,'同步格式无效；只接受明确的阅读字段')
         changed=0
@@ -99,6 +117,7 @@ def create_app(data_dir=None,push_token=None,read_token=None):
                 conn.execute('INSERT OR REPLACE INTO documents VALUES(?,?,?,?,?)',(d['document_id'],d['revision'],content,digest,seq));changed+=1
             for document_id in deleted:
                 conn.execute('DELETE FROM documents WHERE id=?',(document_id,))
+                conn.execute('DELETE FROM attachment_jobs WHERE document_id=?',(document_id,))
                 conn.execute('INSERT INTO changes(document_id) VALUES(?)',(document_id,))
             conn.execute("INSERT OR REPLACE INTO meta VALUES('last_sync',?)",(now_iso(),))
         return {'changed':changed,'accepted':len(validated),'deleted':len(deleted)}
@@ -112,11 +131,11 @@ def create_app(data_dir=None,push_token=None,read_token=None):
             with os.fdopen(fd,'wb') as fh:
                 async for chunk in request.stream():
                     size+=len(chunk)
-                    if size>25_000_000:raise HTTPException(413,'资源过大')
+                    if size>MAX_BYTES:raise HTTPException(413,'资源过大')
                     if len(head)<16:head=(head+chunk)[:16]
                     digest.update(chunk);fh.write(chunk)
             if digest.hexdigest()!=asset_id:raise HTTPException(422,'资源校验失败')
-            if not (head.startswith((b'%PDF-',b'\x89PNG',b'\xff\xd8\xff',b'GIF8')) or head[:4]==b'RIFF' and head[8:12]==b'WEBP'):raise HTTPException(415,'资源类型不支持')
+            if not media_type(head):raise HTTPException(415,'资源类型不支持')
             os.replace(tmp,folder/asset_id)
         finally:
             if os.path.exists(tmp):os.unlink(tmp)
@@ -131,9 +150,41 @@ def create_app(data_dir=None,push_token=None,read_token=None):
         file=root/'assets'/asset_id
         if not file.is_file():raise HTTPException(404,'资源不存在')
         with file.open('rb') as fh:head=fh.read(16)
-        mime='application/pdf' if head.startswith(b'%PDF-') else 'image/png' if head.startswith(b'\x89PNG') else 'image/jpeg' if head.startswith(b'\xff\xd8') else 'image/gif' if head.startswith(b'GIF8') else 'image/webp'
+        mime=media_type(head) or 'application/octet-stream'
         from fastapi.responses import FileResponse
         return FileResponse(file,media_type=mime,headers={'Cache-Control':'private, max-age=86400','X-Content-Type-Options':'nosniff'})
+
+    @app.post('/v1/documents/{document_id}/attachments/{attachment_id}/prepare')
+    def request_attachment(document_id:str,attachment_id:str,request:Request):
+        authorize(request)
+        if not re.fullmatch('[a-f0-9]{64}',attachment_id):raise HTTPException(404,'附件不存在')
+        with db() as conn:
+            row=conn.execute('SELECT payload FROM documents WHERE id=?',(document_id,)).fetchone()
+            if not row:raise HTTPException(404,'资料不存在')
+            d=json.loads(row['payload']);a=next((a for a in d.get('attachments',[]) if a['id']==attachment_id),None)
+            if not a:raise HTTPException(404,'此资料没有该附件')
+            if a['status']=='ready':return {'status':'ready'}
+            if a['status']=='unavailable':raise HTTPException(413,'请到原始来源获取原件')
+            key=hashlib.sha256(f"{document_id}:{d['revision']}:{attachment_id}".encode()).hexdigest()
+            old=conn.execute('SELECT status FROM attachment_jobs WHERE job_id=?',(key,)).fetchone()
+            if old and old[0]=='queued':return {'status':'queued'}
+            if conn.execute("SELECT count(*) FROM attachment_jobs WHERE status='queued'").fetchone()[0]>=100:raise HTTPException(429,'附件队列已满，请稍后重试')
+            conn.execute("INSERT OR REPLACE INTO attachment_jobs VALUES(?,?,?,?,'queued')",(key,document_id,d['revision'],attachment_id))
+        return {'status':'queued'}
+
+    @app.get('/v1/attachment-jobs')
+    def attachment_jobs(request:Request):
+        authorize(request,True)
+        with db() as conn:
+            rows=conn.execute("SELECT j.* FROM attachment_jobs j JOIN documents d ON j.document_id=d.id AND j.revision=d.revision WHERE j.status='queued' ORDER BY j.rowid LIMIT 3").fetchall()
+        return {'jobs':[dict(r) for r in rows]}
+
+    @app.post('/v1/attachment-jobs/{job_id}')
+    def complete_attachment_job(job_id:str,result:JobResult,request:Request):
+        authorize(request,True)
+        with db() as conn:
+            conn.execute('UPDATE attachment_jobs SET status=? WHERE job_id=?',(result.status,job_id))
+        return {'status':result.status}
     @app.get('/v1/status')
     def status(request:Request):
         authorize(request)

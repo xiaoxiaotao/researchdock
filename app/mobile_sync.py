@@ -5,6 +5,8 @@ import httpx
 from .config import load_config
 from .storage import Storage,read_json,atomic_write_json
 from . import index
+from .frontmatter import split_frontmatter
+from .mobile_attachments import inventory,MAX_BYTES,asset_digest
 
 
 def records(cfg,storage):
@@ -29,9 +31,16 @@ def records(cfg,storage):
             companies+= [s['name'] for s in summary.get('stocks',[]) if isinstance(s,dict) and isinstance(s.get('name'),str) and s['name'] in row['body'] and s.get('evidence') and s['evidence'] in row['body']]
             companies=list(dict.fromkeys(companies))
             body=row['body'];assets=[];local_assets={}
+            revision=conn.execute('SELECT archive_path FROM document_revisions WHERE document_id=? AND revision=?',(row['document_id'],row['current_revision'])).fetchone()
+            meta,_=split_frontmatter(storage.read_revision_text(revision['archive_path'])) if revision else ({},'')
+            attachments,prepared=inventory(storage,row['document_id'],row['current_revision'],meta)
+            for item in attachments:
+                if item['status']=='ready':
+                    path=prepared[item['asset_id']]
+                    if item['asset_id'] not in local_assets:assets.append(dict(id=item['asset_id'],name=item['name'],type=item['type']));local_assets[item['asset_id']]=path
             def add(path,kind,name):
-                if path.is_file() and path.stat().st_size<=25_000_000:
-                    digest=hashlib.sha256(path.read_bytes()).hexdigest()
+                if path.is_file() and path.stat().st_size<=MAX_BYTES:
+                    digest=asset_digest(path)
                     if digest not in local_assets:assets.append({'id':digest,'name':name,'type':kind});local_assets[digest]=path
                     return digest
             from .youdao import image_links
@@ -43,7 +52,7 @@ def records(cfg,storage):
                     if digest:body=body.replace(url,'asset:'+digest)
             for path in storage.path('cache/source-images').glob(f"{row['document_id']}-r{row['current_revision']}-*.bin"):add(path,'image','星球原图')
             for path in storage.path(f"cache/document-pdfs/{row['document_id']}").glob(f"r{row['current_revision']}-*.pdf"):add(path,'pdf',row['title']+'.pdf')
-            yield dict(_local_assets=local_assets,assets=assets,document_id=row['document_id'],revision=row['current_revision'],title=row['title'],body=body,summary=summary.get('summary',''),published_at=row['published_at'] or '',source_name=row['source_space_name'] or row['source_platform'] or '',source_url=row['source_url'] or '',industries=editorial.get('industries') or summary.get('industries',[]),companies=companies,company_securities=[dict(name=name,canonical_name=matches[name]['name'],security_id=matches[name]['security_id'],code=matches[name]['code'],exchange=matches[name]['exchange']) for name in companies if name in matches and matches[name]['exchange']!='us']+[dict(name=name,canonical_name=r['name'],security_id=r['security_id'],code=r['code'],exchange='us') for name in companies for r in american.get(name,[])])
+            yield dict(attachments=attachments,_local_assets=local_assets,assets=assets,document_id=row['document_id'],revision=row['current_revision'],title=row['title'],body=body,summary=summary.get('summary',''),published_at=row['published_at'] or '',source_name=row['source_space_name'] or row['source_platform'] or '',source_url=row['source_url'] or '',industries=editorial.get('industries') or summary.get('industries',[]),companies=companies,company_securities=[dict(name=name,canonical_name=matches[name]['name'],security_id=matches[name]['security_id'],code=matches[name]['code'],exchange=matches[name]['exchange']) for name in companies if name in matches and matches[name]['exchange']!='us']+[dict(name=name,canonical_name=r['name'],security_id=r['security_id'],code=r['code'],exchange='us') for name in companies for r in american.get(name,[])])
 
 
 def sync_once(cfg,storage,url,token,transport=None):
@@ -61,12 +70,13 @@ def sync_once(cfg,storage,url,token,transport=None):
         digest=hashlib.sha256(json.dumps(record,sort_keys=True,ensure_ascii=False).encode()).hexdigest()
         if hashes.get(record['document_id'])!=digest:changed.append((record,digest,local_assets))
     sent=0
-    with httpx.Client(timeout=45,follow_redirects=False,transport=transport) as client:
+    with httpx.Client(timeout=180,follow_redirects=False,transport=transport) as client:
         for offset in range(0,len(changed),20):
             batch=changed[offset:offset+20]
             for _,_,assets in batch:
                 for asset_id,path in assets.items():
-                    response=client.post(url.rstrip('/')+'/v1/assets/'+asset_id,headers={'Authorization':'Bearer '+token},content=path.read_bytes())
+                    with path.open('rb') as stream:
+                        response=client.post(url.rstrip('/')+'/v1/assets/'+asset_id,headers={'Authorization':'Bearer '+token},content=iter(lambda:stream.read(1024*1024),b''))
                     if response.status_code!=200:raise RuntimeError('资源上传未确认，保留旧进度')
             response=client.post(url.rstrip('/')+'/v1/sync',headers={'Authorization':'Bearer '+token},json={'library_id':library,'documents':[r for r,_,_ in batch]})
             if response.status_code!=200:raise RuntimeError(f'同步失败（HTTP {response.status_code}），保留旧进度')
@@ -92,13 +102,17 @@ def main():
         if args.config.stat().st_mode & 0o077:raise SystemExit('私有同步配置权限应为 600')
         private=json.loads(args.config.read_text());url=private.get('url','');token=private.get('push_token','')
     while True:
-        try:print(json.dumps(sync_once(cfg,storage,url,token)),flush=True)
+        try:
+            from .mobile_attachments import process_requests,acknowledge
+            results=process_requests(cfg,storage,url,token)
+            print(json.dumps(sync_once(cfg,storage,url,token)),flush=True)
+            acknowledge(url,token,results)
         except Exception as exc:
             # Never print URL, server response, credentials or source content.
             print(json.dumps({'status':'failed','error':type(exc).__name__}),flush=True)
             if not args.watch:raise SystemExit(1)
         if not args.watch:break
-        time.sleep(60)
+        time.sleep(15)
 
 
 if __name__=='__main__':main()
