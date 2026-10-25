@@ -9,6 +9,14 @@ public class WorkspacePresentationTest {
  private void article(MainActivity a,JSONObject d)throws Exception{java.lang.reflect.Method m=MainActivity.class.getDeclaredMethod("showArticle",JSONObject.class);m.setAccessible(true);m.invoke(a,d);}
  private String text(View v){StringBuilder b=new StringBuilder();if(v instanceof TextView)b.append(((TextView)v).getText()).append('\n');if(v instanceof ViewGroup)for(int i=0;i<((ViewGroup)v).getChildCount();i++)b.append(text(((ViewGroup)v).getChildAt(i)));return b.toString();}
  private Button button(View v,String label){if(v instanceof Button&&((Button)v).getText().toString().equals(label))return (Button)v;if(v instanceof ViewGroup)for(int i=0;i<((ViewGroup)v).getChildCount();i++){Button b=button(((ViewGroup)v).getChildAt(i),label);if(b!=null)return b;}return null;}
+ @Test public void damagedCatalogInvalidatesCursorWithoutLosingReadingPreferences()throws Exception{
+  if(!"true".equals(InstrumentationRegistry.getArguments().getString("navigation_test")))return;
+  Instrumentation inst=InstrumentationRegistry.getInstrumentation();MainActivity a=(MainActivity)inst.startActivitySync(new Intent(inst.getTargetContext(),MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+  for(int n=0;n<300;n++){if(!(Boolean)get(a,"syncing"))break;Thread.sleep(100);}assertFalse((Boolean)get(a,"syncing"));
+  SharedPreferences p=a.getSharedPreferences("reader",Context.MODE_PRIVATE);java.io.File f=new java.io.File(a.getFilesDir(),"catalog.json");byte[] original=f.exists()?java.nio.file.Files.readAllBytes(f.toPath()):null;boolean had=p.contains("cloud_cursor");long cursor=p.getLong("cloud_cursor",-1);String last=p.getString("last_article","");
+  try{java.nio.file.Files.write(f.toPath(),"broken JSON".getBytes(java.nio.charset.StandardCharsets.UTF_8));p.edit().putLong("cloud_cursor",123).commit();inst.runOnMainSync(()->{try{call(a,"loadCache");}catch(Exception e){throw new RuntimeException(e);}});assertFalse(p.contains("cloud_cursor"));assertEquals(last,p.getString("last_article",""));assertEquals(0,((JSONArray)get(a,"docs")).length());
+  }finally{if(original==null)f.delete();else java.nio.file.Files.write(f.toPath(),original);SharedPreferences.Editor e=p.edit();if(had)e.putLong("cloud_cursor",cursor);else e.remove("cloud_cursor");e.commit();inst.runOnMainSync(a::finish);}
+ }
  @Test public void workspaceAndExistingAnalysisPreserveTheirMeaning()throws Exception{
   if(!"true".equals(InstrumentationRegistry.getArguments().getString("navigation_test")))return;
   Instrumentation inst=InstrumentationRegistry.getInstrumentation();MainActivity a=(MainActivity)inst.startActivitySync(new Intent(inst.getTargetContext(),MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
