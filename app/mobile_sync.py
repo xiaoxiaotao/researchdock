@@ -101,12 +101,18 @@ def main():
     if args.config:
         if args.config.stat().st_mode & 0o077:raise SystemExit('私有同步配置权限应为 600')
         private=json.loads(args.config.read_text());url=private.get('url','');token=private.get('push_token','')
+    from .mobile_attachments import process_requests,acknowledge,BackgroundPreparations
+    preparations=BackgroundPreparations(cfg,storage,url,token) if args.watch else None
     while True:
         try:
-            from .mobile_attachments import process_requests,acknowledge
-            results=process_requests(cfg,storage,url,token)
+            try:results=preparations.tick() if preparations else process_requests(cfg,storage,url,token)
+            except Exception:
+                # Queue trouble must not suppress normal document publication.
+                results=[]
+                print(json.dumps({'attachment_queue':'unavailable'}),flush=True)
             print(json.dumps(sync_once(cfg,storage,url,token)),flush=True)
             acknowledge(url,token,results)
+            if preparations:preparations.confirm(results)
         except Exception as exc:
             # Never print URL, server response, credentials or source content.
             print(json.dumps({'status':'failed','error':type(exc).__name__}),flush=True)

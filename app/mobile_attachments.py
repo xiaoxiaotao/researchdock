@@ -132,3 +132,38 @@ def acknowledge(url,token,results):
     with httpx.Client(timeout=30,headers={'Authorization':'Bearer '+token}) as http:
         for key,status in results:
             r=http.post(url.rstrip('/')+'/v1/attachment-jobs/'+key,json={'status':status});r.raise_for_status()
+
+
+class BackgroundPreparations:
+    """Two bounded source downloads; completed work remains until publication is confirmed."""
+    def __init__(self,cfg,storage,url,token,transport=None):
+        from concurrent.futures import ThreadPoolExecutor
+        self.cfg=cfg;self.storage=storage;self.url=url.rstrip('/');self.token=token;self.transport=transport
+        self.pool=ThreadPoolExecutor(max_workers=2,thread_name_prefix='original-download')
+        self.pending={}
+
+    def tick(self):
+        results=[]
+        for key,future in self.pending.items():
+            if future.done():
+                try:future.result();status='ready'
+                except Exception:status='failed'
+                results.append((key,status))
+        if len(self.pending)>=2:return results
+        with httpx.Client(timeout=15,transport=self.transport,headers={'Authorization':'Bearer '+self.token}) as client:
+            response=client.get(self.url+'/v1/attachment-jobs')
+            if response.status_code==404:return results
+            response.raise_for_status()
+            for job in response.json()['jobs']:
+                key=job['job_id']
+                if key not in self.pending and len(self.pending)<2:
+                    self.pending[key]=self.pool.submit(prepare,self.cfg,self.storage,dict(job))
+        return results
+
+    def confirm(self,results):
+        for key,_ in results:
+            future=self.pending.get(key)
+            if future is not None and future.done():self.pending.pop(key)
+
+    def close(self):
+        self.pool.shutdown(wait=True)

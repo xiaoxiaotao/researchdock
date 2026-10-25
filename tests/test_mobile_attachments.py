@@ -68,6 +68,31 @@ class AttachmentTests(unittest.TestCase):
    conn=sqlite3.connect(Path(tmp)/'reader.sqlite3')
    try:self.assertEqual(conn.execute('select count(*) from attachment_jobs').fetchone()[0],0)
    finally:conn.close()
+ def test_background_preparation_does_not_block_and_waits_for_ack(self):
+  from app.mobile_attachments import BackgroundPreparations
+  import threading,time
+  released=threading.Event();started=threading.Event();jobs=[{'job_id':str(i)} for i in range(4)]
+  def slow_prepare(*args):started.set();released.wait(3)
+  with patch('app.mobile_attachments.prepare',side_effect=slow_prepare):
+   worker=BackgroundPreparations(None,None,'https://example.com','p'*40,httpx.MockTransport(lambda r:httpx.Response(200,json={'jobs':jobs})))
+   try:
+    before=time.monotonic();self.assertEqual(worker.tick(),[]);self.assertLess(time.monotonic()-before,.5);self.assertTrue(started.wait(1));self.assertEqual(len(worker.pending),2)
+    self.assertEqual(worker.tick(),[]);released.set()
+    for future in worker.pending.values():future.result(timeout=2)
+    done=worker.tick();self.assertEqual(len(done),2);self.assertEqual(worker.tick(),done);self.assertTrue(all(s=='ready' for _,s in done))
+    worker.confirm(done);self.assertEqual(len(worker.pending),0)
+   finally:released.set();worker.close()
+ def test_background_failure_is_reported_until_acknowledged(self):
+  from app.mobile_attachments import BackgroundPreparations
+  with patch('app.mobile_attachments.prepare',side_effect=ValueError('synthetic failure')):
+   worker=BackgroundPreparations(None,None,'https://example.com','p'*40,httpx.MockTransport(lambda r:httpx.Response(200,json={'jobs':[{'job_id':'failure'}]})))
+   try:
+    worker.tick()
+    for future in worker.pending.values():
+     try:future.result(timeout=2)
+     except ValueError:pass
+    self.assertEqual(worker.tick(),[('failure','failed')]);worker.confirm([('failure','failed')]);self.assertFalse(worker.pending)
+   finally:worker.close()
  def test_download_domain_and_format_limits(self):
   for url in ['http://files.zsxq.com/a','https://zsxq.com.evil.test/a','https://127.0.0.1/a','https://user:pass@files.zsxq.com/a','https://files.zsxq.com:8000/a']:
    with self.assertRaises(ValueError):safe_download_url(url)
