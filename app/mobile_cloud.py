@@ -113,6 +113,7 @@ def create_app(data_dir=None,push_token=None,read_token=None):
                 if old and old['revision']>d['revision']:raise HTTPException(409,'拒绝旧版本覆盖新版本')
                 if old and old['digest']==digest:continue
                 seq=conn.execute('INSERT INTO changes(document_id) VALUES(?)',(d['document_id'],)).lastrowid
+                conn.execute('DELETE FROM attachment_jobs WHERE document_id=? AND revision<>?',(d['document_id'],d['revision']))
                 conn.execute('INSERT OR IGNORE INTO revisions VALUES(?,?,?)',(d['document_id'],d['revision'],body_hash))
                 conn.execute('INSERT OR REPLACE INTO documents VALUES(?,?,?,?,?)',(d['document_id'],d['revision'],content,digest,seq));changed+=1
             for document_id in deleted:

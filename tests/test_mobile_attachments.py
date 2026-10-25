@@ -56,6 +56,16 @@ class AttachmentTests(unittest.TestCase):
     prepare(cfg,st,job,Client(),httpx.MockTransport(lambda r:httpx.Response(200,content=b'%PDF-1.7 synthetic original')))
    ready=next(records(cfg,st));self.assertEqual(ready['attachments'][0]['status'],'ready');self.assertEqual(ready['body'],d['body']);self.assertEqual(ready['assets'][0]['type'],'pdf')
    with self.assertRaises(ValueError):prepare(cfg,st,{**job,'attachment_id':'f'*64},Client())
+ def test_new_revision_discards_old_queued_requests(self):
+  with tempfile.TemporaryDirectory() as tmp:
+   c=TestClient(create_app(tmp,P,R));read={'Authorization':'Bearer '+R};push={'Authorization':'Bearer '+P}
+   a=dict(id=KEY,name='合成.pdf',type='pdf',size=20,status='missing',asset_id='',message='等待获取')
+   d=dict(document_id=ID,revision=1,title='合成',body='旧版本',attachments=[a])
+   c.post('/v1/sync',headers=push,json={'library_id':'test','documents':[d]});c.post(f'/v1/documents/{ID}/attachments/{KEY}/prepare',headers=read)
+   c.post('/v1/sync',headers=push,json={'library_id':'test','documents':[{**d,'revision':2,'body':'新版本'}]})
+   self.assertEqual(c.get('/v1/attachment-jobs',headers=push).json()['jobs'],[])
+   import sqlite3
+   with sqlite3.connect(Path(tmp)/'reader.sqlite3') as conn:self.assertEqual(conn.execute('select count(*) from attachment_jobs').fetchone()[0],0)
  def test_download_domain_and_format_limits(self):
   for url in ['http://files.zsxq.com/a','https://zsxq.com.evil.test/a','https://127.0.0.1/a','https://user:pass@files.zsxq.com/a','https://files.zsxq.com:8000/a']:
    with self.assertRaises(ValueError):safe_download_url(url)
