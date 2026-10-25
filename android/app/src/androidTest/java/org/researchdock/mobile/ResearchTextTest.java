@@ -17,6 +17,9 @@ public class ResearchTextTest {
    CharSequence unsafe=renderer.inline("[危险](javascript:alert) [安全](https://example.com)");URLSpan[] links=((Spanned)unsafe).getSpans(0,unsafe.length(),URLSpan.class);assertEquals(1,links.length);assertEquals("https://example.com",links[0].getURL());
   });
  }
+ @Test public void compactLinksPreserveOriginalDestinationAndHeadingDirectory(){
+  InstrumentationRegistry.getInstrumentation().runOnMainSync(()->{android.content.Context c=InstrumentationRegistry.getInstrumentation().getTargetContext();java.util.ArrayList<TextView> headings=new java.util.ArrayList<>();ResearchText renderer=new ResearchText(c,18,headings,(p,id,caption)->{});LinearLayout parent=new LinearLayout(c);String url="https://example.com/share?id=original&tracking=unchanged";CharSequence result=renderer.inline(url);assertFalse(result.toString().contains("tracking"));URLSpan[] links=((Spanned)result).getSpans(0,result.length(),URLSpan.class);assertEquals(1,links.length);assertEquals(url,links[0].getURL());renderer.render(parent,"# 一级\n普通正文\n\n经营表现：\n原文内容");assertEquals(2,headings.size());assertEquals("一级",headings.get(0).getText().toString());assertEquals("经营表现：",headings.get(1).getText().toString());});
+ }
  @Test public void optionalVisualFixture() throws Exception {
   if(!"true".equals(InstrumentationRegistry.getArguments().getString("visual_fixture")))return;
   android.app.Instrumentation inst=InstrumentationRegistry.getInstrumentation();
