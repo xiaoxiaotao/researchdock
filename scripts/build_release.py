@@ -12,6 +12,7 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 FILES={'.gitignore','.gitattributes','README.md','README.en.md','LICENSE','SECURITY.md','CONTRIBUTING.md','CHANGELOG.md','THIRD_PARTY_NOTICES.md','requirements.txt','requirements-dev.txt','config.example.yaml','run.sh','tools/background_service.py'}
 TREES=('app','tests','scripts','docs/open-source','examples','.github','android','deployment')
+REVIEWED_ASSETS={'android/app/src/main/res/drawable-nodpi/launcher_art.png'}
 SUFFIXES={'.py','.md','.json','.jsonl','.yaml','.yml','.txt','.html','.css','.js','.svg','.java','.gradle','.properties','.xml'}
 PATTERNS={
  'api-key':re.compile(r'\bsk-[A-Za-z0-9_-]{16,}'),
@@ -36,7 +37,7 @@ def selected(root=ROOT):
             if path.name=='local.properties':continue
             if path.is_symlink():raise ValueError('Symlink in release tree: '+str(relative))
             if not path.is_file():continue
-            if path.suffix not in SUFFIXES and path.name!='Dockerfile':raise ValueError('Unreviewed file type: '+str(relative))
+            if path.suffix not in SUFFIXES and path.name!='Dockerfile' and str(relative) not in REVIEWED_ASSETS:raise ValueError('Unreviewed file type: '+str(relative))
             result.append(path)
     return sorted(set(result))
 
@@ -59,6 +60,11 @@ def audit(paths,root=ROOT):
     markers=private_markers(root)
     issues=[]
     for path in paths:
+        if str(path.relative_to(root)) in REVIEWED_ASSETS:
+            data=path.read_bytes()
+            if not data.startswith(b'\x89PNG\r\n\x1a\n') or len(data)>4_000_000:issues.append((str(path.relative_to(root)),'invalid-reviewed-image'))
+            if any(value.encode() in data for value in markers):issues.append((str(path.relative_to(root)),'local-source-identifier'))
+            continue
         try:text=path.read_text(encoding='utf-8')
         except (UnicodeError,OSError):
             issues.append((str(path.relative_to(root)),'non-text-file'));continue
