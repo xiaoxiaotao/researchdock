@@ -69,6 +69,7 @@ app/source_images.py
 app/sources.py
 app/storage.py
 app/token_economy.py
+app/us_securities.py
 app/utils.py
 app/verify.py
 app/web/__init__.py
@@ -119,6 +120,7 @@ docs/open-source/mobile-interactions.md
 docs/open-source/product-review-20261025.md
 docs/open-source/releasing.md
 docs/open-source/sources.md
+docs/open-source/us-company-matching.md
 examples/research-notes.jsonl
 requirements-dev.txt
 requirements.txt
@@ -149,5 +151,6 @@ tests/test_source_images.py
 tests/test_source_polling.py
 tests/test_sources.py
 tests/test_token_economy.py
+tests/test_us_securities.py
 tests/test_youdao.py
 tools/background_service.py
