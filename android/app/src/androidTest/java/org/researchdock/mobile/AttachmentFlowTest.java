@@ -15,7 +15,7 @@ public class AttachmentFlowTest {
  private Object get(MainActivity a,String key)throws Exception{java.lang.reflect.Field f=MainActivity.class.getDeclaredField(key);f.setAccessible(true);return f.get(a);}
  private Object call(MainActivity a,String key,Class<?>[] types,Object... args)throws Exception{java.lang.reflect.Method m=MainActivity.class.getDeclaredMethod(key,types);m.setAccessible(true);return m.invoke(a,args);}
  @Test public void attachmentProviderIsReadOnlyAndPathBounded()throws Exception{
-  Context c=InstrumentationRegistry.getInstrumentation().getTargetContext();String hash="f".repeat(64);File f=new File(c.getFilesDir(),"asset-"+hash);assertFalse("Fixture must not replace real cache",f.exists());try{
+  Context c=InstrumentationRegistry.getInstrumentation().getTargetContext();String hash=new String(new char[64]).replace('\0','f');File f=new File(c.getFilesDir(),"asset-"+hash);assertFalse("Fixture must not replace real cache",f.exists());try{
    try(FileOutputStream out=new FileOutputStream(f)){out.write("ID3 synthetic fixture".getBytes());}
    Uri u=Uri.parse("content://org.researchdock.mobile.attachments/asset/"+hash+"/sample.mp3");assertEquals("audio/mpeg",c.getContentResolver().getType(u));try(Cursor cursor=c.getContentResolver().query(u,null,null,null,null)){assertNotNull(cursor);assertTrue(cursor.moveToFirst());assertEquals("sample.mp3",cursor.getString(0));}
    try(ParcelFileDescriptor fd=c.getContentResolver().openFileDescriptor(u,"r")){assertNotNull(fd);}
