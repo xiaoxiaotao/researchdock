@@ -93,6 +93,15 @@ class AttachmentTests(unittest.TestCase):
      except ValueError:pass
     self.assertEqual(worker.tick(),[('failure','failed')]);worker.confirm([('failure','failed')]);self.assertFalse(worker.pending)
    finally:worker.close()
+ def test_queue_failure_does_not_suppress_normal_publication(self):
+  from app.mobile_sync import main
+  import contextlib,io
+  with tempfile.TemporaryDirectory() as tmp:
+   cfg=replace(load_config(),data_dir=Path(tmp)/'kb')
+   with patch('sys.argv',['publisher','--watch']),patch('app.mobile_sync.load_config',return_value=cfg),patch('app.mobile_attachments.BackgroundPreparations') as background,patch('app.mobile_sync.sync_once',return_value={'sent':1,'model_requests':0}) as publish,patch('app.mobile_attachments.acknowledge') as ack,patch('app.mobile_sync.time.sleep',side_effect=StopIteration):
+    background.return_value.tick.side_effect=RuntimeError('synthetic queue outage')
+    with contextlib.redirect_stdout(io.StringIO()),self.assertRaises(StopIteration):main()
+    publish.assert_called_once();ack.assert_called_once();self.assertEqual(ack.call_args.args[2],[])
  def test_download_domain_and_format_limits(self):
   for url in ['http://files.zsxq.com/a','https://zsxq.com.evil.test/a','https://127.0.0.1/a','https://user:pass@files.zsxq.com/a','https://files.zsxq.com:8000/a']:
    with self.assertRaises(ValueError):safe_download_url(url)
