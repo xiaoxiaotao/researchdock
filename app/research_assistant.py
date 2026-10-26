@@ -15,7 +15,8 @@ SYSTEM='''你是用户私有财经资料库的研究整理助手。只依据输�
 不声称已读PDF、图片或音频附件。资料不足要明说，不得编造数据或填满所有主题。不同来源不代表同一机构改口。
 输出中文JSON对象，格式 {"title":"调研标题","sections":[{"title":"结论摘要","items":[{"text":"有证据支持的陈述","citations":["E1"]}]}]}。
 sections建议为结论摘要、事实与变化、来源共识与分歧、财务信息、综合研判、风险、资料缺口与后续跟踪。最多8节，每节最多6项，每项不超过1000字。
-每项必须引用输入中真实存在的证据id。唯有“资料缺口与后续跟踪”可空引用，用于指出输入未提供的信息，不能借此补外部事实。
+缺少财务数据、存在资料不足或后续核实建议时，统一放在标题必须完全等于“资料缺口与后续跟踪”的章节，不得另建无引用的财务、风险或总结章节。建议最多6节，每节最多4项，总字数不超过1800字。
+每项必须引用输入中真实存在的证据id，写在同一项citations数组中（例如["E1"]），不能只写在text文字内。唯有“资料缺口与后续跟踪”可空引用，用于指出输入未提供的信息，不能借此补外部事实。
 引用只填id，禁止自己生成网址、文档ID、来源、原文引句。不要输出HTML或网址。为用户问题给出具体且审慎的研究判断，避免泛泛复述。'''
 
 class NeedsInput(ValueError):pass
@@ -60,7 +61,8 @@ def resolve_target(storage,rows,summaries,request):
     if kind=='industry':
         target=target.removesuffix('行业') or target
         category=ALIASES.get(target,target)
-        if category in CATEGORIES:terms.update([category,*[a for a,b in ALIASES.items() if b==category]])
+        if target in CATEGORIES:terms.update([category,*[a for a,b in ALIASES.items() if b==category]])
+        elif target in {'芯片','集成电路','AI','AI产业','医药','医疗','医药行业','公用事业','宏观','策略','化工'}:terms.add(category)
         return target,kind,sorted(terms),None
     number,exchange=code_hint(target)
     exact={r['security_id']:r for r in directory if normalized(r['name'])==normalized(target) or number and r['code']==number and (not exchange or r['exchange']==exchange)}
@@ -183,9 +185,10 @@ def generate(cfg,storage,task,provider):
             provider.document_ids=sorted({e['document_id'] for e in snapshot['evidence'] if e['document_id']})
             raw=provider.call(SYSTEM,body,'mobile-research-v1',max_tokens=4500)
             try:checked=validate(raw,snapshot['evidence'])
-            except ValueError:
+            except ValueError as error:
+                atomic_write_json(storage.path('jobs/research-assistant/'+key+'-invalid.json'),dict(error=str(error),result=raw))
                 provider.invalidate(SYSTEM,body,'mobile-research-v1',4500)
-                raise LLMError('生成报告未通过引用校验，本次请求已记录，不自动重复收费') from None
+                raise LLMError('生成报告未通过校验（'+str(error)+'），本次请求已记录，不自动重复收费') from None
             result={'status':'completed','message':'报告已生成，请核对原文；综合研判不代表已核实事实。','report':dict(snapshot,**checked,generated_at=now_iso(),model=provider.settings()['model'])}
             atomic_write_json(reuse_path,result)
     except NeedsInput as e:result={'status':'needs_input','message':str(e)[:300],'report':None}

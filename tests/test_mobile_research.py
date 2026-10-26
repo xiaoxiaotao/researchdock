@@ -73,3 +73,41 @@ class EvidenceTests(unittest.TestCase):
   for citations in (['E99'],[],['https://evil.example']):
    with self.assertRaises(ValueError):validate({'title':'报告','sections':[{'title':'结论摘要','items':[{'text':'陈述','citations':citations}]}]},[{'id':'E1'}])
   self.assertTrue(validate({'title':'报告','sections':[{'title':'资料缺口与后续跟踪','items':[{'text':'缺少现金流数据','citations':[]}]}]},[]))
+ def test_attachment_only_and_current_revision_guard(self):
+  with tempfile.TemporaryDirectory() as t:
+   cfg,st,_=self.setup_library(t,body='此主题仅含附件，附件清单已登记，原件请到知识星球查看。')
+   with index.connect(cfg.db_path) as db:db.execute("UPDATE documents SET title='半导体附件'")
+   r=prepare(cfg,st,req());self.assertEqual(r['scope']['attachment_documents'],1);self.assertFalse(r['evidence'])
+  with tempfile.TemporaryDirectory() as t:
+   cfg,st,_=self.setup_library(t)
+   with index.connect(cfg.db_path) as db:db.execute("UPDATE document_search SET body='半导体行业需求此处与原始存档不一致，不可以生成引句。'")
+   self.assertFalse(prepare(cfg,st,req())['evidence'])
+ def test_narrow_industry_does_not_expand_to_all_energy(self):
+  from app.research_assistant import resolve_target
+  with tempfile.TemporaryDirectory() as t:
+   cfg,st,_=self.setup_library(t)
+   target,kind,terms,_=resolve_target(st,[],{},{**req(),'target':'光伏'})
+   self.assertEqual(terms,['光伏']);self.assertNotIn('风电',terms)
+ def test_invalid_model_result_is_durable_without_automatic_retry(self):
+  with tempfile.TemporaryDirectory() as t:
+   cfg,st,_=self.setup_library(t);model=Model();task={'id':uuid.uuid4().hex,'request':req()}
+   with patch.object(model,'call',return_value={'title':'不合规','sections':[]}):
+    first=generate(cfg,st,task,model);self.assertEqual(first['status'],'failed');self.assertTrue(model.invalid)
+   self.assertTrue(st.path('jobs/research-assistant/'+task['id']+'-invalid.json').exists())
+   self.assertEqual(generate(cfg,st,task,model),first);self.assertEqual(model.calls,0)
+class WorkerTests(unittest.TestCase):
+ def test_execution_is_nonblocking_and_delivers_after_completion(self):
+  import threading,time,httpx
+  from app.research_worker import BackgroundResearch
+  with tempfile.TemporaryDirectory() as t:
+   cfg=replace(load_config(),data_dir=Path(t)/'kb');st=Storage(cfg.data_dir);st.ensure_layout();started=threading.Event();release=threading.Event();posted=[];claims=[{'id':'a'*32,'lease':'x','request':req()},None]
+   def transport(r):
+    if r.url.path.endswith('/config'):return httpx.Response(200,json={'accepted':True})
+    if r.url.path.endswith('/claim'):return httpx.Response(200,json={'task':claims.pop(0) if claims else None})
+    posted.append(json.loads(r.content));return httpx.Response(200,json={'accepted':True})
+   def work(*a):started.set();release.wait(2);return dict(status='no_evidence',message='none',report=None)
+   with patch('app.research_worker.generate',side_effect=work):
+    w=BackgroundResearch(cfg,st,'https://example.com','p'*40,transport=httpx.MockTransport(transport))
+    try:
+     before=time.monotonic();w.tick();self.assertLess(time.monotonic()-before,.5);self.assertTrue(started.wait(1));w.tick();self.assertFalse(posted);release.set();w.current[1].result(timeout=2);w.tick();self.assertEqual(posted[0]['status'],'no_evidence');self.assertIsNone(w.current)
+    finally:release.set();w.close()

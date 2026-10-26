@@ -1,4 +1,4 @@
-"""Explicit outbound private-reader sync. Does not invoke any model or copy credentials."""
+"""Outbound private-reader sync; optional bounded Mac research worker, disabled by default."""
 import argparse,hashlib,json,os,time,re
 from urllib.parse import urlsplit
 import httpx
