@@ -15,6 +15,7 @@ android/README.md
 android/app/build.gradle
 android/app/src/androidTest/java/org/researchdock/mobile/ArticleLoadingTest.java
 android/app/src/androidTest/java/org/researchdock/mobile/AttachmentFlowTest.java
+android/app/src/androidTest/java/org/researchdock/mobile/CatalogSearchTest.java
 android/app/src/androidTest/java/org/researchdock/mobile/LibraryViewsTest.java
 android/app/src/androidTest/java/org/researchdock/mobile/OriginalBrowserTest.java
 android/app/src/androidTest/java/org/researchdock/mobile/OriginalFilesTest.java
@@ -27,7 +28,9 @@ android/app/src/androidTest/java/org/researchdock/mobile/ReturnNavigationTest.ja
 android/app/src/androidTest/java/org/researchdock/mobile/WorkspacePresentationTest.java
 android/app/src/main/AndroidManifest.xml
 android/app/src/main/java/org/researchdock/mobile/AttachmentProvider.java
+android/app/src/main/java/org/researchdock/mobile/CatalogSync.java
 android/app/src/main/java/org/researchdock/mobile/LibraryViews.java
+android/app/src/main/java/org/researchdock/mobile/LocalSearch.java
 android/app/src/main/java/org/researchdock/mobile/MainActivity.java
 android/app/src/main/java/org/researchdock/mobile/MobileApi.java
 android/app/src/main/java/org/researchdock/mobile/OriginalFiles.java
@@ -37,6 +40,8 @@ android/app/src/main/java/org/researchdock/mobile/ReaderTheme.java
 android/app/src/main/java/org/researchdock/mobile/ResearchActivity.java
 android/app/src/main/java/org/researchdock/mobile/ResearchHome.java
 android/app/src/main/java/org/researchdock/mobile/ResearchText.java
+android/app/src/main/java/org/researchdock/mobile/SearchActivity.java
+android/app/src/main/java/org/researchdock/mobile/SearchReaderActivity.java
 android/app/src/main/res/drawable/launcher_background.xml
 android/app/src/main/res/drawable/launcher_foreground.xml
 android/app/src/main/res/drawable-nodpi/launcher_art.png
@@ -80,6 +85,7 @@ app/jobs.py
 app/llm.py
 app/measurements.py
 app/mobile_attachments.py
+app/mobile_catalog.py
 app/mobile_cloud.py
 app/mobile_editorial.py
 app/mobile_sync.py
@@ -188,6 +194,7 @@ tests/test_intelligence.py
 tests/test_international_reports.py
 tests/test_international_sources.py
 tests/test_mobile_attachments.py
+tests/test_mobile_catalog.py
 tests/test_mobile_cloud.py
 tests/test_mobile_preview.py
 tests/test_mobile_research.py

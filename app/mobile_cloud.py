@@ -95,6 +95,8 @@ def create_app(data_dir=None,push_token=None,read_token=None):
               CREATE TABLE IF NOT EXISTS attachment_jobs(job_id TEXT PRIMARY KEY,document_id TEXT,revision INTEGER,attachment_id TEXT,status TEXT);
               CREATE TABLE IF NOT EXISTS changes(sequence INTEGER PRIMARY KEY AUTOINCREMENT,document_id TEXT);
             ''')
+            from .mobile_catalog import initialize
+            initialize(conn)
             with conn:yield conn
         finally:conn.close()
     def authorize(request,write=False):
@@ -136,14 +138,17 @@ def create_app(data_dir=None,push_token=None,read_token=None):
                 if pinned and pinned[0]!=body_hash:raise HTTPException(409,'同一修订不能改写原文')
                 if old and old['revision']>d['revision']:raise HTTPException(409,'拒绝旧版本覆盖新版本')
                 if old and old['digest']==digest:continue
-                seq=conn.execute('INSERT INTO changes(document_id) VALUES(?)',(d['document_id'],)).lastrowid
+                from .mobile_catalog import metadata,update_search
+                seq=conn.execute('INSERT INTO changes(document_id,payload) VALUES(?,?)',(d['document_id'],json.dumps(metadata(d),ensure_ascii=False))).lastrowid
+                update_search(conn,d)
                 conn.execute('DELETE FROM attachment_jobs WHERE document_id=? AND revision<>?',(d['document_id'],d['revision']))
                 conn.execute('INSERT OR IGNORE INTO revisions VALUES(?,?,?)',(d['document_id'],d['revision'],body_hash))
                 conn.execute('INSERT OR REPLACE INTO documents VALUES(?,?,?,?,?)',(d['document_id'],d['revision'],content,digest,seq));changed+=1
             for document_id in deleted:
                 conn.execute('DELETE FROM documents WHERE id=?',(document_id,))
                 conn.execute('DELETE FROM attachment_jobs WHERE document_id=?',(document_id,))
-                conn.execute('INSERT INTO changes(document_id) VALUES(?)',(document_id,))
+                conn.execute('DELETE FROM document_fts WHERE document_id=?',(document_id,))
+                conn.execute("INSERT INTO changes(document_id,payload) VALUES(?,'null')",(document_id,))
             conn.execute("INSERT OR REPLACE INTO meta VALUES('last_sync',?)",(now_iso(),))
         return {'changed':changed,'accepted':len(validated),'deleted':len(deleted)}
     @app.post('/v1/assets/{asset_id}')
@@ -245,7 +250,7 @@ def create_app(data_dir=None,push_token=None,read_token=None):
             last=conn.execute("SELECT value FROM meta WHERE key='last_sync'").fetchone()
             health=conn.execute("SELECT value FROM meta WHERE key='source_health'").fetchone()
             received=conn.execute("SELECT value FROM meta WHERE key='health_received_at'").fetchone()
-        return {'cursor':cursor,'last_sync':last[0] if last else None,'source_health':json.loads(health[0]) if health else None,'health_received_at':received[0] if received else None}
+        return {'cursor':cursor,'catalog_protocol':2,'last_sync':last[0] if last else None,'source_health':json.loads(health[0]) if health else None,'health_received_at':received[0] if received else None}
     @app.get('/v1/documents')
     def documents(request:Request,limit:int=Query(100,ge=1,le=100),offset:int=Query(0,ge=0),since:int=Query(0,ge=0)):
         authorize(request)
@@ -265,6 +270,8 @@ def create_app(data_dir=None,push_token=None,read_token=None):
         from fastapi.responses import JSONResponse
         payload=json.loads(row['payload']);payload['sequence']=row['sequence']
         return JSONResponse(payload,headers={'ETag':'"'+row['digest']+'"','Cache-Control':'private, no-store'})
+    from .mobile_catalog import install as install_catalog
+    install_catalog(app,db,authorize)
     from .research_tasks import install
     install(app,db,authorize)
     return app
