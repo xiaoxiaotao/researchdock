@@ -16,7 +16,7 @@ import java.util.regex.*;
 final class ResearchText {
  interface Images { void add(LinearLayout parent,String id,String caption); }
  private final Context context; private final int size; private final Images images; private List<TextView> headings;
- private static final int INK=Color.rgb(38,48,47),GREEN=Color.rgb(31,105,82),BLUE=Color.rgb(49,91,132),AMBER=Color.rgb(145,91,29);
+ private static final int INK=Color.rgb(48,38,39),ACCENT=ReaderTheme.ACCENT,BLUE=Color.rgb(49,91,132),AMBER=Color.rgb(145,91,29);
  private static final Pattern P0=Pattern.compile("\\*\\*(.+?)\\*\\*|__(.+?)__|`([^`]+)`|\\[([^]\\n]+)\\]\\((https?://[^\\s)]+)\\)|(https?://[^\\s<>]+)");
  private static final Pattern P1=Pattern.compile("营业收入|营收|净利润|毛利率|净利率|经营现金流|自由现金流|现金流|每股收益|ROE|EBITDA");
  private static final Pattern P2=Pattern.compile("(?<![A-Za-z0-9])[-+−]?\\d+(?:[.,]\\d+)*(?:%|％|亿元|万元|亿|万|元|个百分点|倍)");
@@ -42,7 +42,7 @@ final class ResearchText {
   Matcher m=P0.matcher(source);int end=0;
   while(m.find()){out.append(source.substring(end,m.start()));int at=out.length();
    if(m.group(1)!=null||m.group(2)!=null){out.append(m.group(1)!=null?m.group(1):m.group(2));span(out,new StyleSpan(Typeface.BOLD),at);}
-   else if(m.group(3)!=null){out.append(m.group(3));span(out,new TypefaceSpan("monospace"),at);span(out,new BackgroundColorSpan(Color.rgb(232,237,236)),at);}
+   else if(m.group(3)!=null){out.append(m.group(3));span(out,new TypefaceSpan("monospace"),at);span(out,new BackgroundColorSpan(Color.rgb(238,235,234)),at);}
    else{String url=m.group(5)!=null?m.group(5):m.group(6);String caption=m.group(4);if(caption==null){try{caption="↗ 来源链接 · "+new java.net.URI(url).getHost();}catch(Exception e){caption="↗ 原文链接";}}out.append(caption);span(out,new URLSpan(url),at);}
    end=m.end();
   }out.append(source.substring(end));
@@ -56,7 +56,7 @@ final class ResearchText {
  private boolean divider(String line){return P4.matcher(line).matches();}
  private String[] cells(String line){String value=line.trim();if(value.startsWith("|"))value=value.substring(1);if(value.endsWith("|"))value=value.substring(0,value.length()-1);return value.split("(?<!\\\\)\\|",-1);}
  private void table(LinearLayout parent,List<String> rows){HorizontalScrollView scroll=new HorizontalScrollView(context);TableLayout table=new TableLayout(context);scroll.addView(table);int cols=cells(rows.get(0)).length;
-  for(int r=0;r<rows.size();r++){TableRow row=new TableRow(context);String[] values=cells(rows.get(r));for(int c=0;c<Math.max(cols,values.length);c++){TextView v=label(inline(c<values.length?values[c].trim().replace("\\|","|"):""),size-2,r==0?GREEN:INK);v.setMinWidth(dp(120));v.setMaxWidth(dp(260));v.setPadding(dp(12),dp(10),dp(12),dp(10));v.setBackground(background(r==0?Color.rgb(225,237,230):r%2==0?Color.rgb(245,247,245):Color.WHITE,Color.rgb(220,228,222)));if(r==0)v.setTypeface(Typeface.DEFAULT,Typeface.BOLD);row.addView(v);}table.addView(row);}parent.addView(scroll,new LinearLayout.LayoutParams(-1,-2));parent.addView(label("表格可左右滑动",11,Color.GRAY));
+  for(int r=0;r<rows.size();r++){TableRow row=new TableRow(context);String[] values=cells(rows.get(r));for(int c=0;c<Math.max(cols,values.length);c++){TextView v=label(inline(c<values.length?values[c].trim().replace("\\|","|"):""),size-2,r==0?ACCENT:INK);v.setMinWidth(dp(120));v.setMaxWidth(dp(260));v.setPadding(dp(12),dp(10),dp(12),dp(10));v.setBackground(background(r==0?ReaderTheme.SOFT:r%2==0?Color.rgb(248,245,244):Color.WHITE,Color.rgb(226,223,222)));if(r==0)v.setTypeface(Typeface.DEFAULT,Typeface.BOLD);row.addView(v);}table.addView(row);}parent.addView(scroll,new LinearLayout.LayoutParams(-1,-2));parent.addView(label("表格可左右滑动",11,Color.GRAY));
  }
  void render(LinearLayout parent,String source){new Session(parent,source).pump(Integer.MAX_VALUE);}
  void renderAsync(LinearLayout parent,String source,java.util.function.BooleanSupplier active,Runnable done){Session session=new Session(parent,source);Runnable batch=new Runnable(){public void run(){if(!active.getAsBoolean())return;if(session.pump(12))done.run();else parent.postOnAnimation(this);}};batch.run();}
@@ -74,12 +74,12 @@ final class ResearchText {
     if(pending.length()>0){paragraph(section,pending.toString());pending.setLength(0);}
     if(trim.startsWith("```")){code=!code;continue;}if(trim.isEmpty())continue;
     if(tabular){List<String> rows=new ArrayList<>();rows.add(line);i+=2;while(i<lines.length&&lines[i].contains("|")&&!lines[i].trim().isEmpty()){rows.add(lines[i]);i++;}i--;table(section,rows);continue;}
-    if(rule){View v=new View(context);v.setBackgroundColor(Color.rgb(214,224,217));LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,dp(1));lp.setMargins(0,dp(16),0,dp(16));section.addView(v,lp);continue;}
+    if(rule){View v=new View(context);v.setBackgroundColor(Color.rgb(221,218,217));LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,dp(1));lp.setMargins(0,dp(16),0,dp(16));section.addView(v,lp);continue;}
     if(img){String uri=image.group(2);if(uri.startsWith("asset:"))images.add(section,uri.substring(6),image.group(1));else{section.addView(label("图片尚未归档至私有服务",12,Color.GRAY));section.addView(label(inline("[查看原图链接]("+uri+")"),size-2,BLUE));}continue;}
     if(heading||callout){String value=trim.replaceFirst("^#{1,6}\\s+","").replace("**","");boolean risk=P12.matcher(value).matches(),key=value.matches("[【\\s]*(核心观点|核心结论|投资要点|研究要点).*" );int level=trim.startsWith("#")?trim.indexOf(' '):2;
-     section=parent;if(risk||key){section=new LinearLayout(context);section.setOrientation(LinearLayout.VERTICAL);section.setPadding(dp(14),dp(8),dp(14),dp(12));section.setBackground(background(risk?Color.rgb(251,243,228):Color.rgb(232,241,235),risk?Color.rgb(224,194,144):Color.rgb(182,211,192)));LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);lp.setMargins(0,dp(14),0,dp(12));parent.addView(section,lp);}
-     TextView v=label(inline(value),size+(level==1?7:level==2?4:2),risk?AMBER:level<=2?GREEN:BLUE);v.setTypeface(Typeface.DEFAULT,Typeface.BOLD);v.setPadding(0,dp(16),0,dp(8));section.addView(v);if(headings!=null)headings.add(v);continue;}
-    TextView v=label(inline(quote?trim.replaceFirst("^>\\s?",""):trim.replaceFirst("^[-*+]\\s+","• ")),size,quote?Color.rgb(95,111,104):INK);if(quote){v.setPadding(dp(14),dp(10),dp(14),dp(10));v.setBackground(background(Color.rgb(236,240,237),Color.rgb(209,220,212)));}else v.setPadding(dp(10),dp(5),0,dp(5));section.addView(v);
+     section=parent;if(risk||key){section=new LinearLayout(context);section.setOrientation(LinearLayout.VERTICAL);section.setPadding(dp(14),dp(8),dp(14),dp(12));section.setBackground(background(risk?Color.rgb(251,243,228):ReaderTheme.SOFT,risk?Color.rgb(224,194,144):Color.rgb(211,182,185)));LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);lp.setMargins(0,dp(14),0,dp(12));parent.addView(section,lp);}
+     TextView v=label(inline(value),size+(level==1?7:level==2?4:2),risk?AMBER:level<=2?ACCENT:BLUE);v.setTypeface(Typeface.DEFAULT,Typeface.BOLD);v.setPadding(0,dp(16),0,dp(8));section.addView(v);if(headings!=null)headings.add(v);continue;}
+    TextView v=label(inline(quote?trim.replaceFirst("^>\\s?",""):trim.replaceFirst("^[-*+]\\s+","• ")),size,quote?Color.rgb(111,95,96):INK);if(quote){v.setPadding(dp(14),dp(10),dp(14),dp(10));v.setBackground(background(Color.rgb(240,237,236),Color.rgb(216,213,212)));}else v.setPadding(dp(10),dp(5),0,dp(5));section.addView(v);
    }else if(code){TextView v=label(line,size-2,INK);v.setTypeface(Typeface.MONOSPACE);section.addView(v);}else{if(pending.length()>0)pending.append("\n");pending.append(line);if(pending.length()>1800){paragraph(section,pending.toString());pending.setLength(0);}}
   }return true;
   }

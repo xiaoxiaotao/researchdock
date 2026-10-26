@@ -1,1 +1,5 @@
-<inset xmlns:android="http://schemas.android.com/apk/res/android" android:drawable="@drawable/launcher_art" android:insetLeft="12%" android:insetTop="12%" android:insetRight="12%" android:insetBottom="12%"/>
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
+<path android:fillColor="#FFF5EF" android:pathData="M26,29 L47,29 Q54,29 54,36 Q54,29 61,29 L82,29 L82,73 L62,73 Q56,73 54,79 Q52,73 46,73 L26,73 Z"/>
+<path android:fillColor="@android:color/transparent" android:strokeColor="#B4232F" android:strokeWidth="2.5" android:strokeLineCap="round" android:pathData="M54,37 L54,69 M34,39 L45,39 M34,46 L44,46 M34,53 L42,53"/>
+<path android:fillColor="@android:color/transparent" android:strokeColor="#B4232F" android:strokeWidth="3.5" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M61,62 L66,54 L71,57 L78,43 M70,43 L78,43 L78,51"/>
+</vector>

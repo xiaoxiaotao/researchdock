@@ -1,1 +1,1 @@
-<bitmap xmlns:android="http://schemas.android.com/apk/res/android" android:src="@drawable/launcher_art" android:gravity="fill"/>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android"><item android:drawable="@drawable/launcher_background"/><item android:drawable="@drawable/launcher_foreground"/></layer-list>

@@ -33,6 +33,7 @@ android/app/src/main/java/org/researchdock/mobile/MobileApi.java
 android/app/src/main/java/org/researchdock/mobile/OriginalFiles.java
 android/app/src/main/java/org/researchdock/mobile/PdfPageView.java
 android/app/src/main/java/org/researchdock/mobile/PdfReaderActivity.java
+android/app/src/main/java/org/researchdock/mobile/ReaderTheme.java
 android/app/src/main/java/org/researchdock/mobile/ResearchActivity.java
 android/app/src/main/java/org/researchdock/mobile/ResearchHome.java
 android/app/src/main/java/org/researchdock/mobile/ResearchText.java
@@ -43,6 +44,7 @@ android/app/src/main/res/mipmap-anydpi/ic_launcher.xml
 android/app/src/main/res/mipmap-anydpi/ic_launcher_round.xml
 android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
 android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml
+android/app/src/main/res/values/styles.xml
 android/build.gradle
 android/gradle.properties
 android/settings.gradle
@@ -148,6 +150,7 @@ deployment/README.md
 docs/open-source/android-pdf-reader.md
 docs/open-source/apk-product-audit-20261025.md
 docs/open-source/architecture.md
+docs/open-source/crimson-theme.md
 docs/open-source/mac-home-workspace-20261026.md
 docs/open-source/mobile-attachments.md
 docs/open-source/mobile-company-codes.md

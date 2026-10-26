@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}公司研究工作台{% endblock %}
-{% block extra_head %}<link rel="stylesheet" href="/static/reading.css"><link rel="stylesheet" href="/static/intelligence.css"><link rel="stylesheet" href="/static/companies.css">{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="/static/reading.css?v={% if asset_versions is defined %}{{ asset_versions['reading.css'] }}{% endif %}"><link rel="stylesheet" href="/static/intelligence.css?v={% if asset_versions is defined %}{{ asset_versions['intelligence.css'] }}{% endif %}"><link rel="stylesheet" href="/static/companies.css?v={% if asset_versions is defined %}{{ asset_versions['companies.css'] }}{% endif %}">{% endblock %}
 {% block content %}<div class="research-app company-directory">
 <header class="coverage-heading"><div><span class="coverage-eyebrow">COMPANY RESEARCH</span><h1>公司研究工作台</h1><p>从一家公司出发，追踪资料、财务与历次研究变化。</p></div><a class="btn" href="/following">管理我的关注 ↗</a></header>
 <section class="coverage-stats" aria-label="当前筛选概览"><div><span>公司条目</span><strong>{{ stats.companies }}</strong></div><div><span>关联资料</span><strong>{{ stats.documents }}</strong></div><div><span>未读资料</span><strong>{{ stats.unread }}</strong></div><div><span>已关注公司</span><strong>{{ stats.followed }}</strong></div></section>

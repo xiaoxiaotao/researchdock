@@ -5,7 +5,7 @@ final class PdfPageView extends View {
  private Bitmap bitmap;private final Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG|Paint.FILTER_BITMAP_FLAG);
  private float zoom=1,x=0,y=0,lastX,lastY;private boolean whole=false;private float[] pending;
  private final ScaleGestureDetector scale;private final GestureDetector taps;
- PdfPageView(Context c){super(c);setBackgroundColor(Color.rgb(225,230,226));setContentDescription("PDF 页面，双指缩放，拖动查看，双击放大");
+ PdfPageView(Context c){super(c);setBackgroundColor(Color.rgb(230,227,226));setContentDescription("PDF 页面，双指缩放，拖动查看，双击放大");
   scale=new ScaleGestureDetector(c,new ScaleGestureDetector.SimpleOnScaleGestureListener(){public boolean onScale(ScaleGestureDetector d){changeZoom(zoom*d.getScaleFactor(),d.getFocusX(),d.getFocusY());return true;}});
   taps=new GestureDetector(c,new GestureDetector.SimpleOnGestureListener(){public boolean onDown(MotionEvent e){return true;}public boolean onDoubleTap(MotionEvent e){changeZoom(zoom>1.1f?1:2.5f,e.getX(),e.getY());return true;}});
  }

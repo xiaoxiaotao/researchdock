@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}研究动态 · 财经知识库{% endblock %}
-{% block extra_head %}<link rel="stylesheet" href="/static/reading.css">{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="/static/reading.css?v={% if asset_versions is defined %}{{ asset_versions['reading.css'] }}{% endif %}">{% endblock %}
 {% block content %}
 {% macro display_title(value) %}{{ value|replace('🔥','')|replace('📑','')|replace('📝','')|replace('[红包]','')|replace('[礼物]','')|replace('🌞','')|replace('🚀','')|replace('✨','')|replace('🎁','')|trim }}{% endmacro %}
 {% macro filter_url(category='', favorite=false, p=1, curated=selected|default(false)) %}/reading?industry={{ category|urlencode }}&q={{ q|urlencode }}&unread={{ 'true' if unread else 'false' }}&starred={{ 'true' if favorite else 'false' }}&start={{ start|default('') }}&end={{ end|default('') }}&page={{ p }}&selected={{ 'true' if curated else 'false' }}&days={{ days|default(0) }}&dedup={{ 'true' if dedup else 'false' }}{% endmacro %}

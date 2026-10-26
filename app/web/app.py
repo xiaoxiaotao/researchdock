@@ -100,7 +100,7 @@ def _render(request: Request, name: str, status_code: int = 200, **context) -> H
         "storage_ready": storage.ready,
         "storage_path": str(cfg.data_dir),
         "today": today_str(),
-        "asset_versions": {name:str((BASE_DIR/"static"/name).stat().st_mtime_ns) for name in ("app.css","reader.js")},
+        "asset_versions": {name:str((BASE_DIR/"static"/name).stat().st_mtime_ns) for name in ("app.css","reader.js","reading.css","intelligence.css","companies.css","company-workspace.css")},
         **context,
     }
     return templates.TemplateResponse(
