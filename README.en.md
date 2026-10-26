@@ -45,3 +45,7 @@ python scripts/build_release.py
 ```
 
 Upload only the reviewed `dist/researchdock/` source tree or generated ZIP. Private data, credentials, source research PDFs, screenshots, virtual environments and original Git history are excluded. See the Chinese README for detailed setup, architecture, source integrations, data formats, backups and publishing steps.
+
+## Mobile research assistant (0.13 preview)
+
+Ask about a company or industry in the Android reader. The Mac retrieves bounded archived text excerpts and cached financial statements, calls DeepSeek, and publishes a cited report through the authenticated private queue. The API key stays on the Mac; selected evidence is sent to DeepSeek. Tasks share a daily limit, offline reports are cached, and unparsed PDF/image/audio attachments are disclosed rather than silently read. Disabled by default. See [configuration, costs and limits](docs/open-source/mobile-research-assistant.md).

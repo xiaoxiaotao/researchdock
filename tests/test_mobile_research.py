@@ -134,3 +134,14 @@ class EntityTests(unittest.TestCase):
  def test_unsupported_row_is_removed_instead_of_displayed_or_reinferred(self):
   result=validate({'title':'报告','sections':[{'title':'结论摘要','items':[{'text':'有来源的陈述','citations':['E1']}]},{'title':'财务信息','items':[{'text':'没有引用的陈述，不能让用户当成事实','citations':[]}]}]},[{'id':'E1'}])
   self.assertEqual(result['omitted_uncited_items'],1);self.assertEqual(len(result['sections']),1);self.assertNotIn('没有引用的陈述',json.dumps(result,ensure_ascii=False))
+
+class DisableTests(unittest.TestCase):
+ def test_disabling_worker_disables_submissions_without_model_access(self):
+  import httpx
+  from app.research_worker import disable_research
+  with tempfile.TemporaryDirectory() as t:
+   c=TestClient(create_app(t,'p'*40,'r'*40));c.post('/v1/research/config',headers=P,json={'enabled':True,'daily_limit':10})
+   def transport(r):
+    response=c.post(r.url.path,content=r.content,headers=dict(r.headers));return httpx.Response(response.status_code,json=response.json())
+   with patch('app.llm.ReceiptClient.call',side_effect=AssertionError('no model')):disable_research('https://example.com','p'*40,httpx.MockTransport(transport))
+   self.assertFalse(c.get('/v1/research/tasks',headers=R).json()['config']['enabled']);self.assertEqual(c.post('/v1/research/tasks',headers=R,json=req()).status_code,403)

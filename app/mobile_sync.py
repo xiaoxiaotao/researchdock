@@ -107,11 +107,14 @@ def main():
         private=json.loads(args.config.read_text());url=private.get('url','');token=private.get('push_token','')
     from .mobile_attachments import process_requests,acknowledge,BackgroundPreparations
     preparations=BackgroundPreparations(cfg,storage,url,token) if args.watch else None
-    from .research_worker import BackgroundResearch
+    from .research_worker import BackgroundResearch,disable_research
     assistant=BackgroundResearch(cfg,storage,url,token,private.get('research_daily_limit',10)) if args.watch and private.get('research_enabled',False) else None
     while True:
         if assistant:
             try:assistant.tick()
+            except Exception:print(json.dumps({'research_queue':'unavailable'}),flush=True)
+        elif args.watch and url and token:
+            try:disable_research(url,token)
             except Exception:print(json.dumps({'research_queue':'unavailable'}),flush=True)
         try:
             try:results=preparations.tick() if preparations else process_requests(cfg,storage,url,token)

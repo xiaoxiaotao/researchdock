@@ -6,6 +6,11 @@ from .llm import ReceiptClient
 from .research import Secrets
 from .research_assistant import generate
 
+def disable_research(url,token,transport=None):
+    with httpx.Client(timeout=15,follow_redirects=False,transport=transport,headers={'Authorization':'Bearer '+token}) as client:
+        response=client.post(url.rstrip('/')+'/v1/research/config',json={'enabled':False,'daily_limit':10})
+        if response.status_code!=404:response.raise_for_status()
+
 class BackgroundResearch:
     def __init__(self,cfg,storage,url,token,daily_limit=10,transport=None):
         self.cfg,self.storage,self.url,self.token=cfg,storage,url.rstrip('/'),token
