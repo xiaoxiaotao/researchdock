@@ -267,10 +267,10 @@ def document_detail(request: Request, document_id: str, revision: int | None = N
         raise HTTPException(status_code=500, detail="缺少可用版本")
 
     try:
-        raw = storage.read_revision_text(target["archive_path"])
-    except StorageNotReady as exc:
+        from ..revision_cache import revision_content
+        meta, body = revision_content(storage, target["archive_path"])
+    except (StorageNotReady, FileNotFoundError) as exc:
         return _render(request, "storage_offline.html", error=str(exc))
-    meta, body = split_frontmatter(raw)
     from ..youdao import local_images
     html_body = md.render(local_images(body))
     from ..company_search import source_focus
