@@ -17,4 +17,9 @@ public class LibraryViewsTest {
   d.put("published_at","2026-10-18");assertFalse(LibraryViews.matches(d,"","",7,"全部",false,false,0,today));d.put("published_at","日期未知");assertFalse(LibraryViews.matches(d,"","",7,"全部",false,false,0,today));assertTrue(LibraryViews.matches(d,"","",0,"全部",false,false,0,today));
   String key=LibraryViews.progressKey(d);d.put("revision",3);assertNotEquals(key,LibraryViews.progressKey(d));assertEquals("2026-10-25 10:30",LibraryViews.date("2026-10-25T10:30:11.123+08:00"));
  }
+ @org.junit.Test public void uppercaseAttachmentNamesAreNotLostToTickerDetection()throws Exception{
+  org.json.JSONObject d=new org.json.JSONObject().put("title","合成文件列表").put("attachments",new org.json.JSONArray().put(new org.json.JSONObject().put("name","CSP example.pdf")));
+  assertTrue(LibraryViews.matches(d,"CSP","",0,"全部",false,false,0,java.time.LocalDate.now()));
+  assertFalse(LibraryViews.matches(d,"AAPL","",0,"全部",false,false,0,java.time.LocalDate.now()));
+ }
 }

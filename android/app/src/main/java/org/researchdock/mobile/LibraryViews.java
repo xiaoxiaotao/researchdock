@@ -15,8 +15,9 @@ final class LibraryViews {
   if(mode.equals("未读")&&opened||mode.equals("关注")&&!followed||mode.equals("续读")&&(progress<=0.02f||progress>=0.98f))return false;
   if(mode.equals("今日收录")&&!ResearchHome.importedToday(d,today))return false;
   String normalized=query.trim().toLowerCase(Locale.ROOT);
-  if(isCodeQuery(query.trim())){org.json.JSONArray refs=d.optJSONArray("company_securities");if(refs!=null)for(int i=0;i<refs.length();i++){JSONObject r=refs.optJSONObject(i);if(r!=null&&(normalized.equals(r.optString("code").toLowerCase(Locale.ROOT))||normalized.equals(r.optString("code").toLowerCase(Locale.ROOT)+"."+r.optString("exchange").toLowerCase(Locale.ROOT))))return true;}return false;}
   StringBuilder attachmentNames=new StringBuilder();org.json.JSONArray attachments=d.optJSONArray("attachments");if(attachments!=null)for(int i=0;i<attachments.length();i++)attachmentNames.append(" ").append(attachments.optJSONObject(i).optString("name"));
+  if(isCodeQuery(query.trim())){org.json.JSONArray refs=d.optJSONArray("company_securities");if(refs!=null)for(int i=0;i<refs.length();i++){JSONObject r=refs.optJSONObject(i);if(r!=null&&(normalized.equals(r.optString("code").toLowerCase(Locale.ROOT))||normalized.equals(r.optString("code").toLowerCase(Locale.ROOT)+"."+r.optString("exchange").toLowerCase(Locale.ROOT))))return true;}return attachmentNames.toString().toLowerCase(Locale.ROOT).contains(normalized);}
+
   return normalized.isEmpty()||(d.optString("title")+" "+d.optString("summary")+" "+d.optString("companies")+" "+d.optString("company_securities")+" "+d.optString("industries")+attachmentNames).toLowerCase(Locale.ROOT).contains(normalized);
  }
 }
