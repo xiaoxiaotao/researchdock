@@ -16,6 +16,7 @@ android/app/build.gradle
 android/app/src/androidTest/java/org/researchdock/mobile/ArticleLoadingTest.java
 android/app/src/androidTest/java/org/researchdock/mobile/AttachmentFlowTest.java
 android/app/src/androidTest/java/org/researchdock/mobile/CatalogSearchTest.java
+android/app/src/androidTest/java/org/researchdock/mobile/FullTextNavigationTest.java
 android/app/src/androidTest/java/org/researchdock/mobile/LibraryViewsTest.java
 android/app/src/androidTest/java/org/researchdock/mobile/OriginalBrowserTest.java
 android/app/src/androidTest/java/org/researchdock/mobile/OriginalFilesTest.java
@@ -167,6 +168,7 @@ docs/open-source/mobile-original-browser.md
 docs/open-source/mobile-performance-20261025.md
 docs/open-source/mobile-research-assistant.md
 docs/open-source/mobile-return-position.md
+docs/open-source/mobile-search-sync.md
 docs/open-source/mobile-workspace.md
 docs/open-source/product-review-20261025.md
 docs/open-source/reading-continuity-20261026.md

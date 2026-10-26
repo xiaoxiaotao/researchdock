@@ -266,3 +266,5 @@ git commit -m "Initial open-source release"
 自有代码采用 [MIT](LICENSE)。第三方数据和研究材料不受此许可自动授权，请遵守其访问与再分发条件；详见 [第三方说明](THIRD_PARTY_NOTICES.md)。
 
 - [手机 AI 调研（0.13）](docs/open-source/mobile-research-assistant.md)：自然语言检索已有资料、带出处报告、追问及离线历史；Mac 执行，默认关闭。
+
+- [0.15 全文搜索与增量同步](docs/open-source/mobile-search-sync.md)：正文命中、离线缓存检索、一致性目录快照与增量变更，不调用模型。

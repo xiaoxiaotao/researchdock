@@ -16,7 +16,7 @@ final class LocalSearch {
  private static boolean contains(JSONArray a,String q){if(a!=null)for(int i=0;i<a.length();i++)if(q.equals(a.optString(i)))return true;return false;}
  static JSONObject hit(JSONObject d,String q)throws JSONException{
   Pattern p=Pattern.compile(Pattern.quote(q),Pattern.CASE_INSENSITIVE|Pattern.UNICODE_CASE);String body=d.optString("body");Matcher m=p.matcher(body);String field="body";
-  if(!m.find()){body=d.optString("title");m=p.matcher(body);field="title";if(!m.find()){String metadata=d.optString("summary")+d.optString("companies")+d.optString("company_securities")+d.optString("industries")+d.optString("attachments");if(!p.matcher(metadata).find())return null;body="命中摘要、公司、代码、行业或附件名称";field="metadata";m=null;}}
+  if(!m.find()){body=d.optString("title");m=p.matcher(body);field="title";if(!m.find()){StringBuilder names=new StringBuilder();JSONArray attachments=d.optJSONArray("attachments");if(attachments!=null)for(int k=0;k<attachments.length();k++){JSONObject a=attachments.optJSONObject(k);if(a!=null)names.append(a.optString("name")).append(" ");}String metadata=d.optString("companies")+d.optString("company_securities")+d.optString("industries")+names;if(!p.matcher(metadata).find())return null;body="命中公司、代码、行业或附件名称";field="metadata";m=null;}}
   int start=m==null?0:Math.max(0,m.start()-65);JSONObject compact=new JSONObject();for(String key:new String[]{"document_id","revision","title","source_name","published_at","content_kind"})compact.put(key,d.opt(key));
   return new JSONObject().put("document",compact).put("snippet",body.substring(start,Math.min(body.length(),start+210))).put("match_field",field).put("offset",start).put("match_start",m==null?-1:m.start()-start).put("match_end",m==null?-1:m.end()-start);
  }
