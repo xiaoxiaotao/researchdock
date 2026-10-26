@@ -4,6 +4,7 @@ import androidx.test.platform.app.InstrumentationRegistry;
 import org.junit.Test;import static org.junit.Assert.*;
 public class PdfReaderTest {
  private Object get(Object a,String k)throws Exception{java.lang.reflect.Field f=a.getClass().getDeclaredField(k);f.setAccessible(true);return f.get(a);}
+ private Object safeGet(Object a,String k){try{return get(a,k);}catch(Exception e){throw new RuntimeException(e);}}
  private void ready(PdfReaderActivity a)throws Exception{for(int n=0;n<200;n++){if(!(Boolean)get(a,"loading"))break;Thread.sleep(50);}assertFalse((Boolean)get(a,"loading"));assertEquals(3,get(a,"total"));}
  @Test public void pageNavigationZoomResumeAndBackKeepTheOriginalArticle()throws Exception{
   if(!"true".equals(InstrumentationRegistry.getArguments().getString("navigation_test")))return;
@@ -19,6 +20,6 @@ public class PdfReaderTest {
    java.lang.reflect.Method load=PdfReaderActivity.class.getDeclaredMethod("load",int.class,float[].class);load.setAccessible(true);inst.runOnMainSync(()->{try{load.invoke(first,99,null);}catch(Exception e){throw new RuntimeException(e);}});ready(pdf);assertEquals(2,get(pdf,"page"));assertFalse(((Button)get(pdf,"next")).isEnabled());inst.runOnMainSync(first::finish);inst.waitForIdleSync();
    assertSame(article[0],get(main,"content"));assertTrue((Boolean)get(main,"reading"));
    pdf=(PdfReaderActivity)inst.startActivitySync(intent);ready(pdf);assertEquals(2,get(pdf,"page"));PdfReaderActivity second=pdf;inst.runOnMainSync(()->{try{PdfPageView image=(PdfPageView)get(second,"image");image.fit(true);assertEquals(1,image.position()[3],.01f);image.fit(false);assertEquals(0,image.position()[3],.01f);}catch(Exception e){throw new RuntimeException(e);}});
-  }finally{if(pdf!=null){PdfReaderActivity end=pdf;inst.runOnMainSync(end::finish);}inst.runOnMainSync(()->{SharedPreferences.Editor edit=prefs.edit().putString("last_article",previous).remove("progress:pdf-reader-source-test:r1");for(String k:prefs.getAll().keySet())if(k.startsWith("pdf:"+id+":"))edit.remove(k);edit.commit();main.finish();});file.delete();}
+  }finally{if(pdf!=null){PdfReaderActivity end=pdf;inst.runOnMainSync(end::finish);inst.waitForIdleSync();}inst.runOnMainSync(()->{if((Boolean)safeGet(main,"reading"))main.onBackPressed();SharedPreferences.Editor edit=prefs.edit().putString("last_article",previous).remove("progress:pdf-reader-source-test:r1");for(String k:prefs.getAll().keySet())if(k.startsWith("pdf:"+id+":"))edit.remove(k);edit.commit();main.finish();});file.delete();}
  }
 }
