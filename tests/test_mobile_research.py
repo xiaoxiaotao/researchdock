@@ -124,3 +124,12 @@ class EntityTests(unittest.TestCase):
    for code,name in [('00700.HK','腾讯控股'),('AAPL.US','苹果'),('ON','安森美')]:
     target,kind,terms,security=resolve_target(st,[],{},{**req(),'target':code,'kind':'company'})
     self.assertEqual(target,name);self.assertIn(name,terms);self.assertNotIn('ON',terms)
+ def test_compound_ai_topic_is_not_broadened_to_entire_ai_industry(self):
+  from app.research_assistant import resolve_target
+  with tempfile.TemporaryDirectory() as t:
+   cfg,st,_=EvidenceTests().setup_library(t)
+   target,kind,terms,_=resolve_target(st,[],{},{**req(),'question':'研究一下最近 AI 眼镜的发展方向','target':'','kind':'auto'})
+   self.assertEqual(target,'AI眼镜');self.assertEqual(kind,'industry');self.assertNotIn('人工智能',terms);self.assertIn('智能眼镜',terms)
+ def test_unsupported_row_is_removed_instead_of_displayed_or_reinferred(self):
+  result=validate({'title':'报告','sections':[{'title':'结论摘要','items':[{'text':'有来源的陈述','citations':['E1']}]},{'title':'财务信息','items':[{'text':'没有引用的陈述，不能让用户当成事实','citations':[]}]}]},[{'id':'E1'}])
+  self.assertEqual(result['omitted_uncited_items'],1);self.assertEqual(len(result['sections']),1);self.assertNotIn('没有引用的陈述',json.dumps(result,ensure_ascii=False))

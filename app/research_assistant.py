@@ -19,6 +19,8 @@ sections建议为结论摘要、事实与变化、来源共识与分歧、财务
 每项必须引用输入中真实存在的证据id，写在同一项citations数组中（例如["E1"]），不能只写在text文字内。唯有“资料缺口与后续跟踪”可空引用，用于指出输入未提供的信息，不能借此补外部事实。
 引用只填id，禁止自己生成网址、文档ID、来源、原文引句。不要输出HTML或网址。为用户问题给出具体且审慎的研究判断，避免泛泛复述。'''
 
+TOPICS={'AI眼镜':('AI眼镜','AI 眼镜','智能眼镜'),'AI手机':('AI手机','AI 手机'),'AI服务器':('AI服务器','AI 服务器'),'机器人':('机器人',),'创新药':('创新药',),'商业航天':('商业航天',),'低空经济':('低空经济',),'数据中心':('数据中心',)}
+
 class NeedsInput(ValueError):pass
 
 def digest(value):return hashlib.sha256(value.encode()).hexdigest()
@@ -43,6 +45,9 @@ def resolve_target(storage,rows,summaries,request):
         aliases=[dict(r) for r in conn.execute('SELECT security_id,name FROM security_names')]
     names.update(r['name'] for r in directory)
     names.update(r['name'] for r in aliases)
+    if not target and kind in ('auto','industry'):
+        topics=[t for t in TOPICS if t.casefold() in re.sub(r'\s+','',q).casefold()]
+        if topics:target=max(topics,key=len);kind='industry'
     if not target:
         industries=[x for x in (*CATEGORIES,*ALIASES) if len(x)>=2 and mentions(q,x)]
         if kind=='industry' or kind=='auto' and ('行业' in q or not any(mentions(q,x) for x in names if len(x)>=2)):
@@ -58,6 +63,8 @@ def resolve_target(storage,rows,summaries,request):
         if not target:raise NeedsInput('请在“调研对象”填写公司名/股票代码或行业，例如宁德时代、300750、半导体。')
     if kind=='auto':kind='industry' if target in (*CATEGORIES,*ALIASES) or target.endswith('行业') else 'company'
     terms={target};security=None
+    if kind=='industry' and re.sub(r'\s+','',target) in TOPICS:
+        target=re.sub(r'\s+','',target);return target,kind,list(TOPICS[target]),None
     if kind=='industry':
         target=target.removesuffix('行业') or target
         category=ALIASES.get(target,target)
@@ -160,17 +167,21 @@ def validate(result,evidence):
     if not isinstance(result,dict) or not isinstance(result.get('title'),str) or not 1<=len(result['title'])<=150:raise ValueError('报告标题无效')
     sections=result.get('sections')
     if not isinstance(sections,list) or not 1<=len(sections)<=8:raise ValueError('报告结构无效')
-    clean=[]
+    clean=[];omitted=0;cited=0
     for section in sections:
         if not isinstance(section,dict) or not isinstance(section.get('title'),str) or not 1<=len(section['title'])<=60 or not isinstance(section.get('items'),list) or not 1<=len(section['items'])<=6:raise ValueError('报告章节无效')
         items=[]
         for row in section['items']:
             if not isinstance(row,dict) or not isinstance(row.get('text'),str) or not 1<=len(row['text'])<=1200 or re.search(r'https?://|javascript:|<script',row['text'],re.I):raise ValueError('报告正文无效')
             citations=row.get('citations')
-            if not isinstance(citations,list) or any(not isinstance(c,str) or c not in ids for c in citations) or not citations and section['title']!='资料缺口与后续跟踪':raise ValueError('报告引用无效')
+            if not isinstance(citations,list) or any(not isinstance(c,str) or c not in ids for c in citations):raise ValueError('报告引用无效')
+            if not citations and section['title']!='资料缺口与后续跟踪':
+                omitted+=1;continue  # Never display an unsupported claim, even a likely gap statement.
+            if citations:cited+=1
             items.append(dict(text=row['text'],citations=list(dict.fromkeys(citations))))
-        clean.append(dict(title=section['title'],items=items))
-    return dict(title=result['title'],sections=clean)
+        if items:clean.append(dict(title=section['title'],items=items))
+    if not clean or omitted and not cited:raise ValueError('报告缺少有引用支持的内容')
+    return dict(title=result['title'],sections=clean,omitted_uncited_items=omitted)
 
 def generate(cfg,storage,task,provider):
     key=task['id']
