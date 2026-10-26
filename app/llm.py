@@ -26,6 +26,16 @@ class ReceiptClient:
                 'unknown': sum(a.get('status') in {'unknown','pending'} for a in attempts)}
 
     def call(self, system, body, purpose, max_tokens=3000):
+        # Mac publisher and desktop analysis share the same quota and receipts.
+        import fcntl
+        lock_path=self.storage.path('jobs/model-api.lock')
+        lock_path.parent.mkdir(parents=True,exist_ok=True)
+        with lock_path.open('a') as handle:
+            fcntl.flock(handle,fcntl.LOCK_EX)
+            try:return self._call(system,body,purpose,max_tokens)
+            finally:fcntl.flock(handle,fcntl.LOCK_UN)
+
+    def _call(self, system, body, purpose, max_tokens=3000):
         model = self.settings()['model']
         identity = sha256_text(json.dumps([model, purpose, system, body, max_tokens], ensure_ascii=False))
         path = self.storage.path(f'jobs/model-receipts/{identity}.json')

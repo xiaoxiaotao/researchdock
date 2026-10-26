@@ -101,13 +101,18 @@ def sync_once(cfg,storage,url,token,transport=None):
 def main():
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--watch',action='store_true');parser.add_argument('--config',type=__import__('pathlib').Path);args=parser.parse_args()
     cfg=load_config();storage=Storage(cfg.data_dir);storage.ensure_layout()
-    url=os.environ.get('RESEARCHDOCK_SYNC_URL','');token=os.environ.get('RESEARCHDOCK_PUSH_TOKEN','')
+    url=os.environ.get('RESEARCHDOCK_SYNC_URL','');token=os.environ.get('RESEARCHDOCK_PUSH_TOKEN','');private={}
     if args.config:
         if args.config.stat().st_mode & 0o077:raise SystemExit('私有同步配置权限应为 600')
         private=json.loads(args.config.read_text());url=private.get('url','');token=private.get('push_token','')
     from .mobile_attachments import process_requests,acknowledge,BackgroundPreparations
     preparations=BackgroundPreparations(cfg,storage,url,token) if args.watch else None
+    from .research_worker import BackgroundResearch
+    assistant=BackgroundResearch(cfg,storage,url,token,private.get('research_daily_limit',10)) if args.watch and private.get('research_enabled',False) else None
     while True:
+        if assistant:
+            try:assistant.tick()
+            except Exception:print(json.dumps({'research_queue':'unavailable'}),flush=True)
         try:
             try:results=preparations.tick() if preparations else process_requests(cfg,storage,url,token)
             except Exception:

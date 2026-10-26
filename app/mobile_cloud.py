@@ -265,6 +265,8 @@ def create_app(data_dir=None,push_token=None,read_token=None):
         from fastapi.responses import JSONResponse
         payload=json.loads(row['payload']);payload['sequence']=row['sequence']
         return JSONResponse(payload,headers={'ETag':'"'+row['digest']+'"','Cache-Control':'private, no-store'})
+    from .research_tasks import install
+    install(app,db,authorize)
     return app
 
 app=create_app()
