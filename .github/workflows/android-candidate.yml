@@ -33,7 +33,7 @@ jobs:
           test "$(gh release view v0.15.0-preview --json isDraft --jq .isDraft)" = true
           release_id=$(gh api "repos/$GH_REPO/releases" --jq '.[] | select(.tag_name=="v0.15.0-preview" and .draft==true) | .id')
           test -n "$release_id"
-          gh api --method PATCH "repos/$GH_REPO/releases/$release_id" -f target_commitish="$GITHUB_SHA" --silent
+          gh api --method PATCH "repos/$GH_REPO/releases/$release_id" -f tag_name="v0.15.0-preview" -f target_commitish="$GITHUB_SHA" --silent
           cp android/app/build/outputs/apk/debug/app-debug.apk ResearchDock-0.15.0.apk
           cp android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk ResearchDock-0.15.0-test.apk
           gh release upload v0.15.0-preview ResearchDock-0.15.0.apk ResearchDock-0.15.0-test.apk --clobber
