@@ -48,10 +48,11 @@ class CatalogTests(unittest.TestCase):
    with sqlite3.connect(Path(t)/'reader.sqlite3') as db:
     seq=db.execute('INSERT INTO changes(document_id) VALUES(?)',(updated['document_id'],)).lastrowid;db.execute('UPDATE documents SET payload=?,sequence=?,revision=2 WHERE id=?',(json.dumps(updated),seq,updated['document_id']))
    self.assertEqual(c.get('/v1/catalog?mode=delta&after=1',headers=R).status_code,409)
+   self.assertTrue(c.get('/v1/status',headers=R).json()['catalog_epoch'])
    self.assertTrue(c.get('/v1/search',headers=R,params={'q':'全新正文'}).json()['results']);self.assertFalse(c.get('/v1/search',headers=R,params={'q':'芯片订单'}).json()['results'])
  def test_literal_operators_and_unicode_offsets_do_not_change_query_scope(self):
   with tempfile.TemporaryDirectory() as t:
    c=TestClient(create_app(t,'p'*40,'r'*40));push(c,[doc('A','😀风险提示：芯片订单可能变化。A OR B只是原文中的字面内容。')])
    result=c.get('/v1/search',headers=R,params={'q':'芯片订单'}).json();hit=result['results'][0];self.assertEqual(hit['snippet'][hit['match_start']:hit['match_end']],'芯片订单');self.assertEqual(result['offset_encoding'],'unicode_codepoints')
    self.assertEqual(len(c.get('/v1/search',headers=R,params={'q':'A OR B'}).json()['results']),1)
-   self.assertEqual(c.get('/v1/search',headers=R,params={'q':'订单','limit':0}).status_code,422);self.assertIn('no-store',c.get('/v1/search',headers=R,params={'q':'订单'}).headers['cache-control'])
+   self.assertEqual(c.get('/v1/search',headers=R,params={'q':'x\x00'}).status_code,422);self.assertEqual(c.get('/v1/search',headers=R,params={'q':'订单','limit':0}).status_code,422);self.assertIn('no-store',c.get('/v1/search',headers=R,params={'q':'订单'}).headers['cache-control'])

@@ -9,7 +9,7 @@ final class LocalSearch {
  static JSONObject read(File file)throws Exception{try(InputStream in=new FileInputStream(file)){ByteArrayOutputStream out=new ByteArrayOutputStream();byte[] b=new byte[8192];int n;while((n=in.read(b))!=-1){if(out.size()+n>2_000_000)throw new IOException("缓存过大");out.write(b,0,n);}return new JSONObject(out.toString("UTF-8"));}}
  static boolean scope(JSONObject d,String company,String industry,String source,int days){
   if(!source.isEmpty()&&!source.equals(d.optString("source_name")))return false;
-  if(days>0)try{LocalDate stamp=LocalDate.parse(LibraryViews.day(d));LocalDate now=LocalDate.now(ZoneId.of("Asia/Shanghai"));if(stamp.isBefore(now.minusDays(days-1))||stamp.isAfter(now))return false;}catch(Exception e){return false;}
+  if(days>0)try{LocalDate stamp;try{stamp=OffsetDateTime.parse(d.optString("published_at")).atZoneSameInstant(ZoneId.of("Asia/Shanghai")).toLocalDate();}catch(Exception e){stamp=LocalDate.parse(LibraryViews.day(d));}LocalDate now=LocalDate.now(ZoneId.of("Asia/Shanghai"));if(stamp.isBefore(now.minusDays(days-1))||stamp.isAfter(now))return false;}catch(Exception e){return false;}
   if(!industry.isEmpty()&&!contains(d.optJSONArray("industries"),industry))return false;
   if(!company.isEmpty()&&!contains(d.optJSONArray("companies"),company)){boolean found=false;JSONArray refs=d.optJSONArray("company_securities");if(refs!=null)for(int n=0;n<refs.length();n++){JSONObject r=refs.optJSONObject(n);if(r!=null&&(company.equals(r.optString("canonical_name"))||company.equals(r.optString("name"))))found=true;}if(!found)return false;}return true;
  }

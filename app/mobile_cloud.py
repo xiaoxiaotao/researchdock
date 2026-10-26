@@ -250,7 +250,8 @@ def create_app(data_dir=None,push_token=None,read_token=None):
             last=conn.execute("SELECT value FROM meta WHERE key='last_sync'").fetchone()
             health=conn.execute("SELECT value FROM meta WHERE key='source_health'").fetchone()
             received=conn.execute("SELECT value FROM meta WHERE key='health_received_at'").fetchone()
-        return {'cursor':cursor,'catalog_protocol':2,'last_sync':last[0] if last else None,'source_health':json.loads(health[0]) if health else None,'health_received_at':received[0] if received else None}
+            epoch=conn.execute("SELECT value FROM meta WHERE key='catalog_epoch'").fetchone()[0]
+        return {'cursor':cursor,'catalog_protocol':2,'catalog_epoch':epoch,'last_sync':last[0] if last else None,'source_health':json.loads(health[0]) if health else None,'health_received_at':received[0] if received else None}
     @app.get('/v1/documents')
     def documents(request:Request,limit:int=Query(100,ge=1,le=100),offset:int=Query(0,ge=0),since:int=Query(0,ge=0)):
         authorize(request)

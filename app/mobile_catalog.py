@@ -1,5 +1,5 @@
 """Immutable metadata journal for consistent sync, plus literal archived-text search."""
-import json,re
+import json,re,uuid
 from datetime import datetime,timedelta
 from fastapi import Request,Query,HTTPException
 from .utils import TZ
@@ -9,15 +9,18 @@ def metadata(document):return {k:v for k,v in document.items() if k!='body'}
 def initialize(conn):
     columns={r[1] for r in conn.execute('PRAGMA table_info(changes)')}
     ready=conn.execute("SELECT value FROM meta WHERE key='catalog_v2_floor'").fetchone()
-    if 'payload' in columns and ready and not conn.execute('SELECT 1 FROM changes WHERE payload IS NULL AND sequence>? LIMIT 1',(int(ready[0]),)).fetchone():return
+    epoch=conn.execute("SELECT value FROM meta WHERE key='catalog_epoch'").fetchone()
+    if 'payload' in columns and ready and epoch and not conn.execute('SELECT 1 FROM changes WHERE payload IS NULL AND sequence>? LIMIT 1',(int(ready[0]),)).fetchone():return
     conn.execute('BEGIN IMMEDIATE')
     try:
         if 'payload' not in {r[1] for r in conn.execute('PRAGMA table_info(changes)')}:conn.execute('ALTER TABLE changes ADD COLUMN payload TEXT')
+        conn.execute("INSERT OR IGNORE INTO meta VALUES('catalog_epoch',?)",(uuid.uuid4().hex,))
         conn.execute('CREATE INDEX IF NOT EXISTS changes_unjournaled ON changes(sequence) WHERE payload IS NULL')
         ready=conn.execute("SELECT value FROM meta WHERE key='catalog_v2_floor'").fetchone()
         if not ready or conn.execute('SELECT 1 FROM changes WHERE payload IS NULL AND sequence>? LIMIT 1',(int(ready[0]),)).fetchone():
             # Only current legacy versions are recoverable. Earlier cursors must bootstrap.
             floor=conn.execute('SELECT COALESCE(MAX(sequence),0) FROM changes').fetchone()[0]
+            if ready:conn.execute("INSERT OR REPLACE INTO meta VALUES('catalog_epoch',?)",(uuid.uuid4().hex,))
             for row in conn.execute('SELECT payload,sequence FROM documents').fetchall():conn.execute('UPDATE changes SET payload=? WHERE sequence=?',(json.dumps(metadata(json.loads(row['payload'])),ensure_ascii=False),row['sequence']))
             conn.execute("INSERT OR REPLACE INTO meta VALUES('catalog_v2_floor',?)",(str(floor),))
             conn.execute("CREATE VIRTUAL TABLE IF NOT EXISTS document_fts USING fts5(document_id UNINDEXED,title,body,keywords,tokenize='trigram')")
@@ -63,12 +66,14 @@ def install(app,db,authorize):
                 if length>7_000_000:raise HTTPException(413,'单条目录记录过大，请在Mac检查资料元数据')
                 events.append(event);size+=length
             more=len(rows)>len(events)
-            return dict(mode=mode,cursor=watermark,events=events,has_more=more,next_after=events[-1]['sequence'] if events else after,next_id=events[-1]['document_id'] if events else after_id)
+            epoch=conn.execute("SELECT value FROM meta WHERE key='catalog_epoch'").fetchone()[0]
+            return dict(mode=mode,cursor=watermark,epoch=epoch,events=events,has_more=more,next_after=events[-1]['sequence'] if events else after,next_id=events[-1]['document_id'] if events else after_id)
 
     @app.get('/v1/search')
     def search(request:Request,q:str=Query(min_length=2,max_length=120),company:str=Query('',max_length=200),industry:str=Query('',max_length=200),source:str=Query('',max_length=200),days:int=Query(0,ge=0,le=365),limit:int=Query(40,ge=1,le=50)):
         authorize(request);q=q.strip()
         if len(q)<2:raise HTTPException(422,'请输入至少两个字符')
+        if any(ord(char)<32 for char in q):raise HTTPException(422,'搜索词不能包含控制字符')
         where=[];params=[];fts=len(q)>=3
         if fts:where.append('document_fts MATCH ?');params.append('"'+q.replace('"','""')+'"')
         else:
