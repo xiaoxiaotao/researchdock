@@ -1,6 +1,7 @@
 .gitattributes
 .github/ISSUE_TEMPLATE/bug_report.md
 .github/pull_request_template.md
+.github/workflows/android-candidate.yml
 .github/workflows/android.yml
 .github/workflows/tests.yml
 .gitignore
