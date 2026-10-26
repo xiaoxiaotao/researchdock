@@ -1,0 +1,6 @@
+<resources>
+<style name="ResearchDockTheme" parent="ResearchDockBase">
+<item name="android:windowLightNavigationBar">true</item>
+<item name="android:navigationBarColor">#FAF7F7</item>
+</style>
+</resources>

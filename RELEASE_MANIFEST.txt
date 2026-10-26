@@ -45,6 +45,7 @@ android/app/src/main/res/mipmap-anydpi/ic_launcher_round.xml
 android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
 android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml
 android/app/src/main/res/values/styles.xml
+android/app/src/main/res/values-v27/styles.xml
 android/build.gradle
 android/gradle.properties
 android/settings.gradle

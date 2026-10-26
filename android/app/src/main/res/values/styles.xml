@@ -1,11 +1,11 @@
 <resources>
-<style name="ResearchDockTheme" parent="android:style/Theme.Material.Light.NoActionBar">
+<style name="ResearchDockBase" parent="android:style/Theme.Material.Light.NoActionBar">
 <item name="android:colorAccent">#B4232F</item>
 <item name="android:colorControlActivated">#B4232F</item>
 <item name="android:statusBarColor">#FAF7F7</item>
 <item name="android:windowLightStatusBar">true</item>
-<item name="android:windowLightNavigationBar">true</item>
-<item name="android:navigationBarColor">#FAF7F7</item>
+<item name="android:navigationBarColor">#392327</item>
 <item name="android:windowBackground">#FAF7F7</item>
 </style>
+<style name="ResearchDockTheme" parent="ResearchDockBase"/>
 </resources>
