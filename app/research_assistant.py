@@ -74,7 +74,7 @@ def resolve_target(storage,rows,summaries,request):
         security=next(iter(exact.values()));target=security['name'];terms.add(target)
         terms.update(a['name'] for a in aliases if a['security_id']==security['security_id'])
         if security['code'].isdigit() or len(security['code'])>=3:terms.add(security['code'])
-    return target,kind,sorted(t for t in terms if len(t)>=2),security
+    return target,kind,sorted(t for t in terms if len(t)>=2 and not re.fullmatch(r'[A-Za-z]{1,2}',t)),security
 
 def prepare(cfg,storage,request,now=None):
     now=now or datetime.now(TZ)
@@ -116,7 +116,17 @@ def prepare(cfg,storage,request,now=None):
         score=sum(2 for w in focus if mentions(body,w))+sum(2 for t in terms if mentions(r['title'],t))
         candidates.append((score,r))
     evidence=[];budget=0;selected=set()
-    for _,r in sorted(candidates,key=lambda v:(v[0],v[1].get('published_at') or ''),reverse=True)[:60]:
+    ranked=sorted(candidates,key=lambda v:(v[0],v[1].get('published_at') or ''),reverse=True)
+    # Keep strong matches plus dated baselines, so 'changes' is not just today's feed.
+    chosen=ranked[:4];chosen_ids={r['document_id'] for _,r in chosen}
+    for bucket in range(4):
+        for candidate in ranked:
+            r=candidate[1];stamp=parse_iso(r['published_at'])
+            slot=min(3,int((stamp-start).total_seconds()/max(1,(now-start).total_seconds())*4))
+            if slot==bucket and r['document_id'] not in chosen_ids:
+                chosen.append(candidate);chosen_ids.add(r['document_id']);break
+    chosen.extend(v for v in ranked if v[1]['document_id'] not in chosen_ids)
+    for _,r in chosen[:60]:
         blocks=[]
         for m in re.finditer(r'[^\n]+',r['body']):
             text=m[0].strip();offset=m.start()+len(m[0])-len(m[0].lstrip())

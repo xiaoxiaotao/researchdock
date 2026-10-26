@@ -111,3 +111,16 @@ class WorkerTests(unittest.TestCase):
     try:
      before=time.monotonic();w.tick();self.assertLess(time.monotonic()-before,.5);self.assertTrue(started.wait(1));w.tick();self.assertFalse(posted);release.set();w.current[1].result(timeout=2);w.tick();self.assertEqual(posted[0]['status'],'no_evidence');self.assertIsNone(w.current)
     finally:release.set();w.close()
+
+class EntityTests(unittest.TestCase):
+ def test_hk_and_us_codes_resolve_to_canonical_names_without_short_ticker_noise(self):
+  from app.securities import Securities,normalized
+  from app.research_assistant import resolve_target
+  with tempfile.TemporaryDirectory() as t:
+   cfg,st,_=EvidenceTests().setup_library(t);master=Securities(st)
+   with master.connect() as db:
+    for code,exchange,name in [('00700','hk','腾讯控股'),('AAPL','us','苹果'),('ON','us','安森美')]:
+     sid=exchange+code;db.execute('INSERT INTO securities VALUES(?,?,?,?,?,?,?,?,1)',(sid,code,exchange,name,'',None,'synthetic',now_iso()));db.execute('INSERT INTO security_names VALUES(?,?,?,?,?)',(sid,name,normalized(name),now_iso(),now_iso()))
+   for code,name in [('00700.HK','腾讯控股'),('AAPL.US','苹果'),('ON','安森美')]:
+    target,kind,terms,security=resolve_target(st,[],{},{**req(),'target':code,'kind':'company'})
+    self.assertEqual(target,name);self.assertIn(name,terms);self.assertNotIn('ON',terms)
