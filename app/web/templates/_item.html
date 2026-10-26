@@ -1,7 +1,8 @@
 <a class="item" href="/documents/{{ row.document_id }}{% if row.search_page %}#page-{{ row.search_page }}{% endif %}">
   <div class="t">{{ row.title }}</div>
-  {% if row.search_excerpt %}<div class="x">{{ row.search_excerpt }}</div>
-  {% elif row.excerpt %}<div class="x">{{ row.excerpt }}</div>{% endif %}
+  {% set preview = row.search_excerpt or row.excerpt or '' %}
+  {% if not row.search_excerpt and preview.startswith(row.title) %}{% set preview = preview[row.title|length:]|trim %}{% endif %}
+  {% if preview %}<div class="x">{{ preview }}</div>{% endif %}
   <div class="m">
     {% if row.attachment_only %}<span class="badge warn">附件可下载{% if row.source_attachment_count %} · {{ row.source_attachment_count }} 个{% endif %}</span>{% endif %}
     <span class="badge type">{{ row.content_type|type_label }}</span>

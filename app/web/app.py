@@ -155,12 +155,12 @@ def home(request: Request, view: str = Query("imported", pattern="^(imported|pub
         return _render(request, "storage_offline.html", error="知识库目录未就绪")
     with _conn() as conn:
         s = index.stats(conn, today_str())
-        field = "imported_at" if view == "imported" else "published_at"
+        field = "first_imported_at" if view == "imported" else "published_at"
         rows, _ = index.list_documents(conn, limit=20, date_field=field, start=today_str())
         recent, _ = index.list_documents(conn, limit=12)
         batches = index.recent_batches(conn, 3)
         stocks = index.list_stocks(conn)[:8]
-        stock_map = _stocks_by_doc(conn, [r["document_id"] for r in recent])
+        stock_map = _stocks_by_doc(conn, list({r["document_id"] for r in [*rows,*recent]}))
     inventory_rows,processing_counts=inventory(pipeline,research)
     metadata={r['document_id']:r['meta'] for r in inventory_rows}
     rows=[_attachment_presentation(r,metadata.get(r['document_id'],{})) for r in rows]
@@ -170,11 +170,12 @@ def home(request: Request, view: str = Query("imported", pattern="^(imported|pub
         stocks=company_rows[:8]
         s['stocks']=len(company_rows)
     usage = storage.disk_usage()
+    from ..home_workspace import collection_status
     return _render(
         request, "home.html",
         stats=s, today_rows=rows, recent=recent, batches=batches,
         stocks=stocks, stock_map=stock_map, view=view, usage=usage,
-        marker=storage.marker, processing_counts=processing_counts,
+        marker=storage.marker, processing_counts=processing_counts, collection=collection_status(storage),
     )
 
 

@@ -8,12 +8,20 @@
   <button class="btn" type="submit">查找</button>
 </form>
 
-<section class="panel"><h2>资料处理进度</h2><p>采集入库、AI 正文整理与附件下载分别统计；附件不转写、不解析。</p><div style="display:flex;gap:20px;flex-wrap:wrap">{% for key,label in [('pending','待分析'),('complete','摘要完成'),('attachment','仅附件'),('insufficient','正文不足'),('failed','失败待重试')] %}<a href="/documents?processing={{ key }}">{{ label }} <strong>{{ processing_counts.get(key,0) }}</strong></a>{% endfor %}</div><p><a href="/settings">查看任务状态 / 重试整理 →</a> · <a href="/documents?file_type=pdf">PDF 附件</a> · <a href="/documents?file_type=audio">音频附件</a></p></section>
+<header class="workspace-heading"><div><p class="eyebrow">每日研究</p><h1>研究工作台</h1><p class="hint">先看今天新收录的资料，再跟踪公司与行业。</p></div><a class="btn" href="/following">我的关注 →</a></header>
+{% if collection is defined %}<section class="collection-strip {{ 'needs-attention' if collection.warning else '' }}" aria-label="采集状态">
+  <details><summary><strong>{{ collection.label }}</strong><span>{{ ('每 ' ~ collection.poll_minutes ~ ' 分钟常规检查') if collection.poll_enabled else '手动更新' }} · {{ collection.sources|length }} 个信源</span></summary>
+    {% if not collection.sources %}<p>还没有配置信源，可先手动导入资料。</p>{% endif %}
+    {% for source in collection.sources %}<div class="collection-source"><strong>{{ source.name }} · {{ source.label }}</strong><p>最近成功：{{ source.last_success_at|dt }} · 最近调度：{{ source.last_attempt_at|dt }}</p>{% if source.issue == 'auth_required' %}<p>需检查星球登录或访问权限。</p>{% elif source.issue == 'api_unavailable' %}<p>接口暂不可达或返回异常。{% if collection.poll_enabled %}失败后至少 {{ [15,collection.poll_minutes]|max }} 分钟按调度重试。{% else %}自动采集已关闭，请到信源管理手动重试。{% endif %}</p>{% elif source.status == 'failed' %}<p>查看信源管理中的错误记录后重试。</p>{% endif %}{% if source.unavailable_count %}<p>正文待补 {{ source.unavailable_count }} 条</p>{% endif %}</div>{% endfor %}
+    <p class="hint">这里展示 Mac 的采集状态，采集成功不代表 AI 整理或附件下载全部完成。</p>
+  </details><a href="/sources">检查信源 →</a>
+</section>{% endif %}
+<details class="panel processing-drawer"><summary>资料处理进度 <span class="hint">待分析 {{ processing_counts.get('pending',0) }} · 失败 {{ processing_counts.get('failed',0) }}</span></summary><p class="hint">采集、AI 整理和附件下载分别统计。</p><div class="processing-links">{% for key,label in [('pending','待分析'),('complete','摘要完成'),('attachment','仅附件'),('insufficient','正文不足'),('failed','失败待重试')] %}<a href="/documents?processing={{ key }}">{{ label }} <strong>{{ processing_counts.get(key,0) }}</strong></a>{% endfor %}</div><p><a href="/settings">任务状态 / 重试 →</a> · <a href="/documents?file_type=pdf">PDF</a> · <a href="/documents?file_type=audio">音频</a></p></details>
 <div class="tiles">
   <div class="tile">
-    <div class="k">今日入库</div>
-    <div class="v">{{ stats.imported_today }}</div>
-    <div class="n">按导入时间统计</div>
+    <div class="k">今日新收录</div>
+    <div class="v">{{ stats.first_imported_today|default(stats.imported_today) }}</div>
+    <div class="n">按首次入库时间统计</div>
   </div>
   <div class="tile">
     <div class="k">今日发表</div>
@@ -35,7 +43,7 @@
 <div class="grid2" style="margin-top:26px">
   <div>
     <div class="tabs">
-      <a href="/?view=imported" class="{{ 'on' if view == 'imported' else '' }}">今天收到</a>
+      <a href="/?view=imported" class="{{ 'on' if view == 'imported' else '' }}">今天新收录</a>
       <a href="/?view=published" class="{{ 'on' if view == 'published' else '' }}">今天发表</a>
       <span class="hint" style="margin-left:auto">补录旧资料时两个日期不同，请勿混看</span>
     </div>

@@ -269,7 +269,7 @@ def list_documents(conn: sqlite3.Connection, *, limit: int = 30, offset: int = 0
     params: list = []
     if not include_deleted:
         where.append("d.deleted_at IS NULL")
-    if date_field not in {"imported_at", "published_at"}:
+    if date_field not in {"imported_at", "first_imported_at", "published_at"}:
         date_field = "imported_at"
     if start:
         where.append(f"d.{date_field} >= ?")
@@ -399,11 +399,14 @@ def stats(conn: sqlite3.Connection, today_prefix: str) -> dict:
         return int(row[0] or 0) if row else 0
 
     base = "FROM documents WHERE deleted_at IS NULL"
+    counts=conn.execute(f"""SELECT COUNT(*) AS total,
+        COALESCE(SUM(imported_at LIKE ?),0) AS imported_today,
+        COALESCE(SUM(first_imported_at LIKE ?),0) AS first_imported_today,
+        COALESCE(SUM(published_at LIKE ?),0) AS published_today,
+        COALESCE(SUM(published_at IS NULL),0) AS unknown_date {base}""",
+        (f"{today_prefix}%",)*3).fetchone()
     return {
-        "total": one(f"SELECT COUNT(*) {base}"),
-        "imported_today": one(f"SELECT COUNT(*) {base} AND imported_at LIKE ?", (f"{today_prefix}%",)),
-        "published_today": one(f"SELECT COUNT(*) {base} AND published_at LIKE ?", (f"{today_prefix}%",)),
-        "unknown_date": one(f"SELECT COUNT(*) {base} AND published_at IS NULL"),
+        **dict(counts),
         "revisions": one("SELECT COUNT(*) FROM document_revisions"),
         "stocks": one("SELECT COUNT(*) FROM stocks"),
         "by_type": {
