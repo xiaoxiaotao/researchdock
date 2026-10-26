@@ -59,14 +59,16 @@
       </div>
     {% endif %}
 
-    <h2>最近入库</h2>
-    {% if recent %}
-      <div class="list">
-        {% for row in recent %}{% include "_item.html" %}{% endfor %}
+    {% set shown_ids = today_rows|map(attribute='document_id')|list %}
+    {% set other_recent = recent|rejectattr('document_id','in',shown_ids)|list %}
+    {% if other_recent %}
+      <h2>最近入库 / 修订</h2><div class="list">
+        {% for row in other_recent %}{% include "_item.html" %}{% endfor %}
       </div>
-    {% else %}
+    {% elif stats.total == 0 %}
       <div class="empty">知识库还是空的。<a href="/imports">上传第一份资料</a>，或查看<a href="/setup">开始使用指南</a>。</div>
     {% endif %}
+    {% if stats.total %}<p><a class="btn" href="/documents">浏览全部 {{ stats.total }} 份资料 →</a></p>{% endif %}
   </div>
 
   <div>
@@ -80,7 +82,7 @@
         <div class="stockrow">
           <div>
             <div class="nm"><a href="/stocks/{{ s.stock_id }}">{{ s.name or s.code }}</a></div>
-            <div class="cd">{{ s.code }} · {{ s.stock_id }}</div>
+            <div class="cd">{{ s.code if s.code else '研究对象 · 证券身份待核对' }}</div>
           </div>
           <span class="badge">{{ s.doc_count }} 条</span>
         </div>
