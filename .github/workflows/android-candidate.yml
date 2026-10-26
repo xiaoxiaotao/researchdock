@@ -1,0 +1,36 @@
+name: Android candidate package
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+      - name: Restore private preview signing key
+        env:
+          PREVIEW_KEY: ${{ secrets.ANDROID_PREVIEW_KEY }}
+        run: |
+          if [ -n "$PREVIEW_KEY" ]; then
+            printf %s "$PREVIEW_KEY" | base64 --decode > "$RUNNER_TEMP/researchdock-preview.keystore"
+            chmod 600 "$RUNNER_TEMP/researchdock-preview.keystore"
+            echo "RESEARCHDOCK_PREVIEW_STORE=$RUNNER_TEMP/researchdock-preview.keystore" >> "$GITHUB_ENV"
+          fi
+      - run: gradle -p android :app:assembleDebug :app:assembleDebugAndroidTest :app:lintDebug --no-daemon --no-build-cache
+      - name: Upload only to the existing draft candidate
+        run: |
+          test "$(gh release view v0.15.0-preview --json isDraft --jq .isDraft)" = true
+          cp android/app/build/outputs/apk/debug/app-debug.apk ResearchDock-0.15.0.apk
+          cp android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk ResearchDock-0.15.0-test.apk
+          gh release upload v0.15.0-preview ResearchDock-0.15.0.apk ResearchDock-0.15.0-test.apk --clobber
