@@ -24,6 +24,13 @@ async def bounded_json(request,limit=262144):
     except (ValueError,TypeError):raise HTTPException(422,'请求格式无效') from None
 
 def install(app,db,authorize):
+    @app.middleware('http')
+    async def private_reports(request,call_next):
+        response=await call_next(request)
+        if request.url.path.startswith('/v1/research/'):
+            response.headers['Cache-Control']='private, no-store'
+            response.headers['X-Content-Type-Options']='nosniff'
+        return response
     def schema(conn):
         conn.execute('''CREATE TABLE IF NOT EXISTS research_tasks(id TEXT PRIMARY KEY,request TEXT NOT NULL,status TEXT NOT NULL,
           created_at TEXT NOT NULL,updated_at TEXT NOT NULL,lease TEXT,lease_until TEXT,result TEXT,message TEXT NOT NULL DEFAULT '')''')

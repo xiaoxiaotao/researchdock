@@ -25,6 +25,7 @@ class QueueTests(unittest.TestCase):
   with tempfile.TemporaryDirectory() as t:
    c=TestClient(create_app(t,'p'*40,'r'*40));q=req()
    self.assertEqual(c.get('/v1/research/tasks').status_code,401)
+   self.assertEqual(c.get('/v1/research/tasks',headers=R).headers['Cache-Control'],'private, no-store')
    self.assertEqual(c.post('/v1/research/config',headers=R,json={'enabled':True,'daily_limit':2}).status_code,401)
    self.assertEqual(c.post('/v1/research/tasks',headers=R,json=q).status_code,403)
    self.assertEqual(c.post('/v1/research/config',headers=P,json={'enabled':True,'daily_limit':2}).status_code,200)
