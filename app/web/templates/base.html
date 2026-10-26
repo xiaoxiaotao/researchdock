@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{% block title %}股票研究知识库{% endblock %}</title>
-<link rel="stylesheet" href="/static/app.css">
+<link rel="stylesheet" href="/static/app.css?v={% if asset_versions is defined %}{{ asset_versions['app.css'] }}{% endif %}">
 {% block extra_head %}{% endblock %}
 </head>
 <body>
